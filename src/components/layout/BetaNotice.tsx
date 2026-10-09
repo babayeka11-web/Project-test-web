@@ -15,7 +15,7 @@ function Dot() {
 
 export function BetaNotice() {
   return (
-    <div className="scheme-deep bg-deep text-ink-2">
+    <aside aria-label="ประกาศเว็บไซต์ทดลอง" className="scheme-deep bg-deep text-ink-2">
       <Container className="flex min-h-9 items-center justify-center gap-2 py-1.5 text-center text-[0.75rem] leading-snug sm:text-meta">
         <Icon name="info" size={15} strokeWidth={2} className="hidden text-sky sm:block" />
         <p>
@@ -31,6 +31,6 @@ export function BetaNotice() {
           <span className="inline-block whitespace-nowrap">ฟอร์มยังไม่ส่งถึงทีมอัตโนมัติ</span>
         </p>
       </Container>
-    </div>
+    </aside>
   );
 }

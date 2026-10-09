@@ -161,7 +161,6 @@ export function IconButton({
   return (
     <button
       type={type}
-      aria-label={label}
       title={label}
       className={cn(
         'pressable relative inline-grid shrink-0 place-items-center rounded-full disabled:opacity-50',
@@ -173,6 +172,10 @@ export function IconButton({
       {...rest}
     >
       <Icon name={icon} size={size === 'sm' ? 22 : 24} />
+      <span className="sr-only">
+        {label}
+        {badge ? ` ${badge}` : ''}
+      </span>
       {badge ? <CountBubble count={badge} className="absolute -right-0.5 -top-0.5" /> : null}
     </button>
   );

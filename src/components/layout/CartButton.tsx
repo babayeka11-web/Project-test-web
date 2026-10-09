@@ -11,11 +11,9 @@ export function CartButton({ showLabel = 'xl', className }: { showLabel?: 'alway
   const count = useCartCount();
   const pathname = usePathname();
   const active = pathname?.startsWith('/quote');
-  const label = count > 0 ? `ใบเสนอราคา มี ${count} รายการ` : 'ใบเสนอราคา ยังไม่มีรายการ';
   return (
     <Link
       href="/quote/"
-      aria-label={label}
       aria-current={active ? 'page' : undefined}
       className={cn(
         'pressable relative inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-line bg-surface/70 px-3 text-small font-semibold text-ink no-underline hover:border-brand/40 hover:text-brand',
@@ -24,16 +22,17 @@ export function CartButton({ showLabel = 'xl', className }: { showLabel?: 'alway
       )}
     >
       <Icon name="quote" size={20} />
-      {showLabel !== 'never' && (
-        <span className={cn(showLabel === 'xl' && 'hidden xl:inline')}>ใบเสนอราคา</span>
-      )}
+      <span className={cn(showLabel === 'never' && 'sr-only', showLabel === 'xl' && 'sr-only xl:not-sr-only')}>ใบเสนอราคา</span>
       {count > 0 ? (
-        <CountBubble count={count} className={cn(showLabel === 'always' ? '' : 'absolute -right-1 -top-1 xl:static')} />
+        <CountBubble count={count} className={cn(showLabel !== 'always' && 'absolute -right-1 -top-1 xl:static')} />
       ) : (
         showLabel !== 'never' && (
-          <span className={cn('tabular-nums text-ink-3', showLabel === 'xl' && 'hidden xl:inline')}>0</span>
+          <span aria-hidden className={cn('tabular-nums text-ink-3', showLabel === 'xl' && 'hidden xl:inline')}>
+            0
+          </span>
         )
       )}
+      <span className="sr-only">{count > 0 ? ` มี ${count} รายการ` : ' ยังไม่มีรายการ'}</span>
     </Link>
   );
 }

@@ -85,7 +85,7 @@ const plexMono = localFont({
 
 const fontVars = [plexThai, plexLatin, anuphanThai, anuphanLatin, plexMono].map((f) => f.variable).join(' ');
 
-const DEFAULT_TITLE = 'ล้างแอร์ ติดตั้ง ซ่อม กรุงเทพฯ เริ่ม ฿700 · SBP AirCare';
+const DEFAULT_TITLE = 'ล้างแอร์ ติดตั้ง ซ่อมแอร์ กรุงเทพฯ และปริมณฑล · SBP AirCare';
 const DESCRIPTION =
   'ล้างแอร์ ติดตั้ง ซ่อม และขายแอร์ทุกแบรนด์ในกรุงเทพฯ และปริมณฑล โดยทีมช่างของบริษัท สหบูรพากรุ๊ป ' +
   'ดูราคามาตรฐานก่อน VAT ได้ทันที จองล้างแอร์ออนไลน์ หรือขอใบเสนอราคาสำหรับบ้านและองค์กร';

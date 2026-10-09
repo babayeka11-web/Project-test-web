@@ -9,7 +9,6 @@ export function Logo({ className, priority }: { className?: string; priority?: b
     <Link
       href="/"
       className={cn('group inline-flex min-h-11 shrink-0 items-center gap-2.5 rounded-control no-underline', className)}
-      aria-label="SBP AirCare หน้าแรก"
     >
       <Image
         src={asset('/brand/sbp.png')}
@@ -24,6 +23,7 @@ export function Logo({ className, priority }: { className?: string; priority?: b
         <span className="font-display text-[1.0625rem] font-bold text-ink sm:text-[1.1875rem]">SBP AirCare</span>
         <span className="mt-1 text-[0.75rem] font-medium text-ink-3">สหบูรพากรุ๊ป</span>
       </span>
+      <span className="sr-only">หน้าแรก</span>
     </Link>
   );
 }

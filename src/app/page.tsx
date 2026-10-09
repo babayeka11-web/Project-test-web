@@ -177,7 +177,7 @@ export default function Home() {
               <p className="text-meta text-ink-3">
                 {NOTES.estimate} · ขั้นต่ำงานล้าง ฿{MIN_BILL.toLocaleString('en-US')} ต่อการเข้างาน
               </p>
-              <Button fullWidth icon="calendar" onClick={() => toast('นี่คือหน้าตัวอย่าง ฟอร์มจองจริงอยู่ที่หน้าล้างแอร์', { action: { label: 'ไปหน้าล้างแอร์', href: '/cleaning/' } })}>
+              <Button fullWidth variant="secondary" icon="calendar" onClick={() => toast('นี่คือหน้าตัวอย่าง ฟอร์มจองจริงอยู่ที่หน้าล้างแอร์', { action: { label: 'ไปหน้าล้างแอร์', href: '/cleaning/' } })}>
                 เลือกวันเข้างาน
               </Button>
             </div>
