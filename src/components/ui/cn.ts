@@ -1,4 +1,4 @@
-/** Joins class names, skipping falsy values: cn('a', cond && 'b', undefined) → 'a b'. */
-export function cn(...parts: Array<string | false | null | undefined | 0>): string {
-  return parts.filter(Boolean).join(' ');
+/** Joins class names, skipping anything that is not a non-empty string: cn('a', cond && 'b', undefined) → 'a b'. */
+export function cn(...parts: unknown[]): string {
+  return parts.filter((p): p is string => typeof p === 'string' && p !== '').join(' ');
 }

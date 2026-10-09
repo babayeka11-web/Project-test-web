@@ -33,7 +33,7 @@ export type CardProps = HTMLAttributes<HTMLElement> & {
 /** Rounded 24px surface. The basic building block for grouped content. */
 export function Card({ as, tone = 'surface', padding = 'md', interactive, href, className, children, ...rest }: CardProps) {
   const classes = cn(
-    'relative block rounded-card border text-ink',
+    'relative block min-w-0 rounded-card border text-ink',
     TONES[tone],
     PADDING[padding],
     (interactive || href) && 'lift',

@@ -179,7 +179,8 @@ export const cart = {
       set({ addr: null, zone: zone ?? null, zoneInput: text ?? '' });
       return;
     }
-    set({ addr, zone: zone === undefined ? state.zone : zone, zoneInput: text ?? zoneInputOf(addr) });
+    // without a zone, clear the old one until the book answers (never show the fee of a previous address)
+    set({ addr, zone: zone === undefined ? null : zone, zoneInput: text ?? zoneInputOf(addr) });
     if (zone === undefined) recomputeZone(addr);
   },
   /** Set a zone directly (e.g. from typed text resolved by checkZone), clearing the pick. */

@@ -92,7 +92,7 @@ export function SegmentedControl<V extends string = string>({
       aria-labelledby={labelledBy}
       data-ready={thumb ? '' : undefined}
       className={cn(
-        'group/seg relative isolate max-w-full rounded-full border border-line bg-surface-2 p-1',
+        'group/seg no-scrollbar relative isolate max-w-full overflow-x-auto rounded-full border border-line bg-surface-2 p-1',
         fullWidth ? 'flex w-full' : 'inline-flex',
         className,
       )}
@@ -121,8 +121,8 @@ export function SegmentedControl<V extends string = string>({
             onKeyDown={onKeyDown}
             className={cn(
               'pressable relative inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-full font-semibold leading-tight',
-              size === 'sm' ? 'px-3.5 text-small' : 'px-5 text-body',
-              fullWidth && 'flex-1',
+              size === 'sm' ? 'text-small' : 'text-body',
+              fullWidth ? 'flex-1 px-2 sm:px-3' : size === 'sm' ? 'shrink-0 px-3.5' : 'shrink-0 px-5',
               checked
                 ? 'text-brand group-not-data-ready/seg:bg-surface group-not-data-ready/seg:shadow-card'
                 : 'text-ink-2 hover:text-ink',

@@ -8,8 +8,9 @@
 import { COMPANY } from './company';
 import { QUEUE_RULES } from './constants';
 import { baht } from './format';
+import type { QuoteLine } from './quote';
 import { JOB_TIME, type JobLevel } from './content';
-import type { AcTypeId } from './types';
+import { TYPE_BY_CODE, type AcTypeCode, type AcTypeId } from './types';
 
 export const LEAD_DAYS = QUEUE_RULES.leadDays;
 export const RUSH_FEE_EX = QUEUE_RULES.rushFeeEx;
@@ -141,4 +142,31 @@ export function dateHint(date: string, hasRush: boolean, now: BkkNow = bkkNow())
           : `วันนี้อยู่ในช่วงคิวด่วน (+${fee} ก่อน VAT ต่อการเข้างาน ถ้ามีคิวว่าง) ทีมยืนยันกับคุณก่อน`
         : 'จองปกติ · ทีมยืนยันคิวและเวลาเข้างาน';
   return { text: txt + (J.closed ? ' · วันอาทิตย์เป็นงานนอกเวลา มีค่าใช้จ่ายเพิ่มเติม' : ''), warn: J.rush || J.kind === 'past' };
+}
+
+const CLEAN_KEY = /^(?:QC|CL|C)-.+-(C1|C2)-(wall|ceiling|cassette|floor|duct)-/;
+const INSTALL_KEY = /^I[NV]?-INS-(W|C|K|FS)-(\d+)-(\d+)/;
+
+/** What the crew does on the visit, read from quotation lines (port of the reference commerce.visitLines + ticket.jobsIn):
+ *  typed cleaning lines by their key · other priced cleaning lines (AHU …) = unknown time, cleaning add-ons (kind 'addon',
+ *  see cleanExtraLine) are not units · installation per type · install survey requests = unknown time · repair = a half-day
+ *  slot without a time estimate. */
+export function visitLinesOf(lines: readonly Pick<QuoteLine, 'key' | 'group' | 'kind' | 'unitEx' | 'qty'>[]): VisitLine[] {
+  const out: VisitLine[] = [];
+  lines.forEach(i => {
+    if (i.group !== 'clean' || i.unitEx == null) return;
+    const m = CLEAN_KEY.exec(i.key || '');
+    if (m) out.push({ t: m[2] as AcTypeId, level: m[1] as JobLevel, qty: i.qty });
+    else if (i.kind !== 'addon') out.push({ t: null, level: 'C1', qty: i.qty, unknown: true });
+  });
+  const inst = lines.filter(i => i.group === 'install');
+  inst.forEach(i => {
+    const m = INSTALL_KEY.exec(i.key || '');
+    if (m) out.push({ t: TYPE_BY_CODE[m[1] as AcTypeCode].id, level: 'install', qty: i.qty });
+  });
+  const surveys = inst.filter(i => i.kind === 'survey').length;
+  if (surveys) out.push({ t: null, level: 'install', qty: surveys, unknown: true });
+  const repair = lines.filter(i => i.group === 'repair').reduce((n, i) => n + (i.unitEx == null ? 1 : i.qty), 0);
+  if (repair) out.push({ t: 'wall', level: 'repair', qty: repair });
+  return out;
 }

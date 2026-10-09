@@ -185,3 +185,39 @@ export function serviceLine(o: { key: string; group: QuoteLine['group']; name: s
     unit: o.unit ?? undefined,
   };
 }
+
+/* ---------- price-centre rows (reference commerce.mountPriceCenter) ---------- */
+
+/** Sheet-category prefixes of each price-centre tab (category text starts with its sheet number). */
+export const PRICE_GROUPS = {
+  install: ['01', '02', '03', '04'],
+  move: ['13', '11', '14', '16', '12', '17'],
+  materials: ['06', '07', '08', '09', '10'],
+  project: ['05', '15'],
+} as const;
+/** Items whose category starts with one of the prefixes (Pricebook order). */
+export const inCategories = <I extends Pick<InstallItem, 'cat'>>(items: readonly I[], prefixes: readonly string[]): I[] =>
+  items.filter(i => prefixes.some(p => (i.cat || '').startsWith(p)));
+/** '13 งานรื้อ ย้าย และขนย้าย' → 'งานรื้อ ย้าย และขนย้าย' */
+export const catTitle = (cat: string | null): string => (cat || '').replace(/^\d+\s*/, '');
+
+/** Cart line for an installation-sheet item: INS-* → install service (or survey request), anything else → add-on. */
+export function installItemLine(i: Pick<InstallItem, 'code' | 'name' | 'ex' | 'unit'>): QuoteLine {
+  if (/^INS-/.test(i.code)) {
+    return i.ex == null
+      ? { kind: 'survey', group: 'install', key: `S-${i.code}`, name: i.name, unitEx: null, qty: 1 }
+      : { kind: 'service', group: 'install', key: `I-${i.code}`, name: i.name, unitEx: i.ex, qty: 1, unit: i.unit ?? undefined };
+  }
+  return { kind: i.ex == null ? 'survey' : 'addon', group: 'addon', key: `A-${i.code}`, name: i.name, unitEx: i.ex, qty: 1, unit: i.unit ?? undefined };
+}
+
+/** Cart line for a repair / diagnosis row (no standard rate → survey request). */
+export const repairLine = (r: { name: string; ex: number | null; unit?: string | null }): QuoteLine => ({
+  kind: r.ex == null ? 'survey' : 'service',
+  group: 'repair',
+  key: `R-${r.name}`,
+  name: r.name,
+  unitEx: r.ex,
+  qty: 1,
+  unit: r.unit ?? undefined,
+});

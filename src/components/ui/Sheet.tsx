@@ -101,10 +101,10 @@ export function Sheet({
   }, []);
 
   const panel = {
-    right: cn('ml-auto mr-0 h-dvh max-h-dvh w-[min(100vw-2.5rem,24rem)] rounded-l-panel', WIDTH[size]),
-    left: cn('ml-0 mr-auto h-dvh max-h-dvh w-[min(100vw-2.5rem,24rem)] rounded-r-panel', WIDTH[size]),
-    bottom: 'mb-0 mt-auto max-h-[88dvh] w-full max-w-none rounded-t-panel sm:mx-auto sm:max-w-[40rem]',
-    center: cn('m-auto max-h-[min(88dvh,48rem)] w-[min(100vw-2rem,28rem)] rounded-panel', WIDTH[size]),
+    right: cn('my-0 ml-auto mr-0 h-dvh max-h-dvh w-[calc(100vw-2.5rem)] max-w-full rounded-l-panel', WIDTH[size]),
+    left: cn('my-0 ml-0 mr-auto h-dvh max-h-dvh w-[calc(100vw-2.5rem)] max-w-full rounded-r-panel', WIDTH[size]),
+    bottom: 'mx-0 mb-0 mt-auto max-h-[88dvh] w-full max-w-full rounded-t-panel sm:mx-auto sm:max-w-[40rem]',
+    center: cn('m-auto max-h-[88dvh] w-[calc(100vw-2rem)] max-w-full rounded-panel', WIDTH[size]),
   }[side];
 
   return (

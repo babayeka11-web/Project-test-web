@@ -1,0 +1,23 @@
+import type { IconName } from '@/components/ui/Icon';
+
+/** Icon for each site section (menu rows, footer). Keys are NAV / NAV_MORE hrefs from src/lib/site.ts. */
+export const NAV_ICONS: Record<string, IconName> = {
+  '/cleaning/': 'clean',
+  '/installation/': 'install',
+  '/repair/': 'repair',
+  '/products/': 'ac',
+  '/business/': 'building',
+  '/prices/': 'tag',
+  '/area/': 'pin',
+  '/knowledge/': 'thermometer',
+  '/faq/': 'info',
+  '/contact/': 'phone',
+  '/quote/': 'quote',
+};
+
+/** True when `pathname` is the section `href` or a page inside it (e.g. /products/xyz/ → /products/). */
+export function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  const p = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  return href === '/' ? p === '/' : p.startsWith(href);
+}

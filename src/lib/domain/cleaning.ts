@@ -97,6 +97,34 @@ export function startAt(table: CleanRateTable, pkg: CleanPkgId, level: CleanLeve
   return rs.length ? Math.min(...rs) : null;
 }
 
+/** Client-side twin of pricebook.cleanFrom(): lowest C1 price of the quick-booking packages in the table. */
+export function cleanFromTable(table: CleanRateTable): number | null {
+  const rs = table.rows.filter(r => r.level === 'C1' && QUICK_PKGS.includes(r.pkg) && r.ex != null).map(r => r.ex as number);
+  return rs.length ? Math.min(...rs) : null;
+}
+
+/** Cart line for one row of the cleaning price table (reference price centre key C-<pkg>-<level>-<type>-<range>). */
+export const cleanPriceLine = (r: Pick<CleanRateRow, 'pkg' | 'level' | 'type' | 'range' | 'ex'>): QuoteLine => ({
+  kind: r.ex == null ? 'survey' : 'service',
+  group: 'clean',
+  key: `C-${r.pkg}-${r.level}-${r.type}-${r.range}`,
+  name: `${LEVEL_TH[r.level].th} ${TYPE_BY_ID[r.type].th} ${r.range} BTU`,
+  detail: r.pkg,
+  unitEx: r.ex,
+  qty: 1,
+});
+
+/** Cart line for an AHU / add-on / special-area cleaning row (no type) — key CX-<name>. Pass the row's sheet label `ty`:
+ *  add-on rows ('งานเพิ่ม…', 'Access…') become kind 'addon' so the visit planner does not count them as units. */
+export const cleanExtraLine = (r: { name: string; ex: number | null; ty?: string | null }): QuoteLine => ({
+  kind: r.ex == null ? 'survey' : /^(งานเพิ่ม|Access)/.test(r.ty || '') ? 'addon' : 'service',
+  group: 'clean',
+  key: `CX-${r.name}`,
+  name: r.name,
+  unitEx: r.ex,
+  qty: 1,
+});
+
 /* ---------- quick 3-step booking ---------- */
 
 export type QuickType = 'wall' | 'ceiling' | 'cassette' | 'floor';

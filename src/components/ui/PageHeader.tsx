@@ -25,10 +25,10 @@ export type PageHeaderProps = {
 
 export function PageHeader({ breadcrumbs, eyebrow, title, lead, actions, aside, meta, className, children }: PageHeaderProps) {
   return (
-    <header className={cn('relative isolate overflow-hidden bg-air', className)}>
+    <header className={cn('relative isolate -mt-header overflow-hidden bg-air pt-header', className)}>
       <AirLines
         animate
-        className="absolute -right-24 top-6 -z-10 h-[22rem] w-[48rem] max-w-none text-sky opacity-50 sm:top-0 md:-right-10 lg:h-[26rem] lg:w-[60rem]"
+        className="absolute -right-40 top-4 -z-10 h-56 w-[40rem] max-w-none text-sky opacity-45 md:-right-10 md:top-10 md:h-[24rem] md:w-[52rem] lg:h-[28rem] lg:w-[64rem]"
       />
       <Container className="pb-12 pt-6 sm:pt-8 md:pb-16 lg:pb-20">
         {breadcrumbs && <Breadcrumbs items={breadcrumbs} className="mb-8 md:mb-10" />}
