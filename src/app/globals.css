@@ -1,26 +1,640 @@
-@import "tailwindcss";
+/*
+ * SBP AirCare — "Cool Air" design system (docs/dev/ARCHITECTURE.md §5, docs/dev/UI.md).
+ * Every colour is a token: Tailwind utilities (bg-surface, text-ink-2, border-line, bg-cta …) read CSS variables that
+ * switch for dark mode — the OS setting (prefers-color-scheme) unless html[data-theme="light"|"dark"] overrides it.
+ * Components never use raw hex values.
+ */
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* `dark:` follows html[data-theme] first, then the OS. */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme='light'], [data-theme='light'] *)) {
+      @slot;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme {
+  /* ── Colour (light values; dark values are below) ───────────────────────────────────────────── */
+  --color-bg: #f5f9fc; /* page */
+  --color-page: var(--color-bg);
+  --color-surface: #ffffff; /* card */
+  --color-surface-2: #edf4fa; /* soft panel */
+  --color-ink: #0b1b2e; /* text */
+  --color-ink-2: #46566b; /* secondary text */
+  --color-ink-3: #5b6b7f; /* meta text, ≥ 4.5:1 on surface and surface-2 */
+  --color-line: rgba(0, 60, 153, 0.11); /* hairline (decorative) */
+  --color-line-strong: #7a8ba2; /* control borders, ≥ 3:1 (WCAG 1.4.11) */
+  --color-brand: #003c99; /* FUJIVA navy */
+  --color-brand-hover: #00307d;
+  --color-on-brand: #ffffff;
+  --color-sky: #0b74b5;
+  --color-sky-soft: #e3f1fb;
+  --color-cta: #c93a0a; /* SP orange-red — primary actions only */
+  --color-cta-hover: #a92f07;
+  --color-on-cta: #ffffff;
+  --color-cta-soft: #fff3ec;
+  --color-ok: #1b7a45;
+  --color-ok-soft: #eaf6ef;
+  --color-warn: #b4560d;
+  --color-warn-soft: #fff6eb;
+  --color-bad: #b02a26;
+  --color-bad-soft: #fbeaea;
+  --color-deep: #003c99; /* navy feature panels (CtaBand, Section tone="brand") */
+  --color-on-deep: #ffffff;
+  --color-on-deep-2: #cfddf2;
+  --color-sky-on-deep: #8acbf5;
+  --color-focus: #0b74b5;
+  --color-scrim: rgba(6, 18, 36, 0.5);
+
+  /* ── Type ─────────────────────────────────────────────────────────────────────────────────── */
+  --font-sans:
+    var(--font-plex-th), var(--font-plex-la), 'IBM Plex Sans Thai', 'Noto Sans Thai', 'Leelawadee UI', Tahoma, system-ui,
+    sans-serif;
+  --font-display:
+    var(--font-anuphan-th), var(--font-anuphan-la), var(--font-plex-th), 'Anuphan', 'Noto Sans Thai', 'Leelawadee UI',
+    Tahoma, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Type scale — Thai needs generous line-height (stacked vowels and tone marks); never negative tracking. */
+  --text-display: clamp(2.375rem, 1.55rem + 3.4vw, 4rem);
+  --text-display--line-height: 1.24;
+  --text-h1: clamp(2rem, 1.5rem + 2vw, 3rem);
+  --text-h1--line-height: 1.3;
+  --text-h2: clamp(1.625rem, 1.32rem + 1.2vw, 2.25rem);
+  --text-h2--line-height: 1.36;
+  --text-h3: clamp(1.1875rem, 1.1rem + 0.35vw, 1.375rem);
+  --text-h3--line-height: 1.5;
+  --text-lead: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
+  --text-lead--line-height: 1.75;
+  --text-body: 1rem;
+  --text-body--line-height: 1.7;
+  --text-small: 0.9375rem;
+  --text-small--line-height: 1.65;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.6;
+
+  /* ── Space and size ───────────────────────────────────────────────────────────────────────── */
+  --spacing-gutter: clamp(1rem, 0.35rem + 2.8vw, 2.5rem); /* px-gutter: page side padding */
+  --spacing-section: clamp(4rem, 2.6rem + 5.6vw, 7rem); /* py-section: vertical rhythm between sections */
+  --spacing-header: var(--header-h); /* top-header, scroll-mt-header */
+  --container-page: 76rem; /* max-w-page (1216px) */
+  --container-wide: 88rem; /* max-w-wide */
+  --container-text: 42rem; /* max-w-text — long-form reading measure */
+  --breakpoint-xs: 25rem; /* 400px — small-phone tweaks */
+
+  /* ── Shape and depth ──────────────────────────────────────────────────────────────────────── */
+  --radius-card: 24px;
+  --radius-control: 14px;
+  --radius-panel: 32px; /* hero panels, CtaBand */
+  --shadow-card: 0 1px 2px rgba(0, 40, 100, 0.05), 0 8px 24px -14px rgba(0, 40, 100, 0.16);
+  --shadow-lift: 0 2px 4px rgba(0, 40, 100, 0.05), 0 20px 40px -18px rgba(0, 40, 100, 0.26);
+  --shadow-pop: 0 4px 10px rgba(0, 30, 80, 0.06), 0 28px 64px -20px rgba(0, 30, 80, 0.32);
+  --shadow-cta: 0 1px 1px rgba(120, 30, 0, 0.12), 0 8px 18px -8px rgba(201, 58, 10, 0.55);
+
+  /* ── Motion ─────────────────────────────────────────────────────────────────────────────── */
+  --ease-air: cubic-bezier(0.16, 1, 0.3, 1); /* ease-air · use with duration-150 / 250 / 400 */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --animate-bump: bump 420ms var(--ease-air);
+  --animate-fade-in: fade-in 250ms var(--ease-air) both;
+  --animate-toast-in: toast-in 400ms var(--ease-air) both;
+  --animate-toast-out: fade-out 150ms var(--ease-exit) both;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-air-draw: air-draw 1.8s var(--ease-air) both;
+
+  @keyframes bump {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.28);
+    }
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+  @keyframes air-draw {
+    from {
+      stroke-dashoffset: 1;
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────────────────────────────
+   The same block twice: once for the OS preference (unless the page is forced light), once for html[data-theme=dark]. */
+@layer base {
+  :root {
+    color-scheme: light;
+    --header-h: 4rem;
+    --mobilebar-h: 0px;
+    interpolate-size: allow-keywords; /* lets <details> animate to height:auto (Chromium) */
+  }
+  @media (min-width: 64rem) {
+    :root {
+      --header-h: 4.5rem;
+    }
+  }
+  @media (max-width: 47.98rem) {
+    :root {
+      --mobilebar-h: 4rem;
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --color-bg: #0a1220;
+      --color-surface: #111b2b;
+      --color-surface-2: #16233a;
+      --color-ink: #e8eef6;
+      --color-ink-2: #aebbcc;
+      --color-ink-3: #8c9bb0;
+      --color-line: rgba(160, 190, 230, 0.14);
+      --color-line-strong: #5f7292;
+      --color-brand: #8db8f5;
+      --color-brand-hover: #a4c6f7;
+      --color-on-brand: #0b1b2e;
+      --color-sky: #5bb5ec;
+      --color-sky-soft: #13304a;
+      --color-cta: #f08a4b;
+      --color-cta-hover: #f49a63;
+      --color-on-cta: #0b1b2e;
+      --color-cta-soft: #33200f;
+      --color-ok: #4ed39a;
+      --color-ok-soft: #0f2b22;
+      --color-warn: #ffb35c;
+      --color-warn-soft: #2e2210;
+      --color-bad: #ff7b72;
+      --color-bad-soft: #331a1c;
+      --color-deep: #0e2547;
+      --color-on-deep: #e8eef6;
+      --color-on-deep-2: #aec4e6;
+      --color-sky-on-deep: #6bc0f0;
+      --color-focus: #5bb5ec;
+      --color-scrim: rgba(0, 4, 12, 0.66);
+      --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 28px -16px rgba(0, 0, 0, 0.7);
+      --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 22px 44px -18px rgba(0, 0, 0, 0.8);
+      --shadow-pop: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 30px 70px -20px rgba(0, 0, 0, 0.85);
+      --shadow-cta: 0 8px 22px -10px rgba(240, 138, 75, 0.55);
+    }
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --color-bg: #0a1220;
+    --color-surface: #111b2b;
+    --color-surface-2: #16233a;
+    --color-ink: #e8eef6;
+    --color-ink-2: #aebbcc;
+    --color-ink-3: #8c9bb0;
+    --color-line: rgba(160, 190, 230, 0.14);
+    --color-line-strong: #5f7292;
+    --color-brand: #8db8f5;
+    --color-brand-hover: #a4c6f7;
+    --color-on-brand: #0b1b2e;
+    --color-sky: #5bb5ec;
+    --color-sky-soft: #13304a;
+    --color-cta: #f08a4b;
+    --color-cta-hover: #f49a63;
+    --color-on-cta: #0b1b2e;
+    --color-cta-soft: #33200f;
+    --color-ok: #4ed39a;
+    --color-ok-soft: #0f2b22;
+    --color-warn: #ffb35c;
+    --color-warn-soft: #2e2210;
+    --color-bad: #ff7b72;
+    --color-bad-soft: #331a1c;
+    --color-deep: #0e2547;
+    --color-on-deep: #e8eef6;
+    --color-on-deep-2: #aec4e6;
+    --color-sky-on-deep: #6bc0f0;
+    --color-focus: #5bb5ec;
+    --color-scrim: rgba(0, 4, 12, 0.66);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 28px -16px rgba(0, 0, 0, 0.7);
+    --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 22px 44px -18px rgba(0, 0, 0, 0.8);
+    --shadow-pop: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 30px 70px -20px rgba(0, 0, 0, 0.85);
+    --shadow-cta: 0 8px 22px -10px rgba(240, 138, 75, 0.55);
+  }
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-padding-top: calc(var(--header-h) + 1rem);
+    scroll-padding-bottom: calc(var(--mobilebar-h) + 1rem);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.7;
+    font-weight: 400;
+    overflow-wrap: break-word;
+  }
+  /* Phones: room for the fixed MobileBar so content is never hidden behind it. */
+  @media (max-width: 47.98rem) {
+    body {
+      padding-bottom: calc(var(--mobilebar-h) + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.36;
+    text-wrap: balance;
+    color: var(--color-ink);
+  }
+  h1 {
+    font-weight: 700;
+  }
+  p,
+  li,
+  dd,
+  figcaption {
+    text-wrap: pretty;
+  }
+  strong,
+  b {
+    font-weight: 600;
+  }
+  small {
+    font-size: var(--text-meta);
+  }
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+  button,
+  [role='button'],
+  summary,
+  label[for],
+  select {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+  input,
+  textarea {
+    caret-color: var(--color-sky);
+  }
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  /* Numbers line up in prices, totals and tables. */
+  table,
+  output,
+  data,
+  time,
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-sky) 26%, transparent);
+    color: inherit;
+  }
+
+  /* One visible focus ring everywhere (keyboard only). Inputs draw their own ring. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+  :where(input, textarea, select):focus-visible {
+    outline: none;
+  }
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+
+  /* Native <dialog>: the Sheet component styles its own panel. */
+  dialog::backdrop {
+    background-color: rgba(6, 18, 36, 0.5);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) dialog::backdrop {
+      background-color: rgba(0, 4, 12, 0.66);
+    }
+  }
+  :root[data-theme='dark'] dialog::backdrop {
+    background-color: rgba(0, 4, 12, 0.66);
+  }
+
+  /* Never animate for people who asked the OS for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after,
+    ::backdrop {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ── Signature utilities: the "air" motif ─────────────────────────────────────────────────────── */
+
+/* Soft cool-air wash for heroes and page headers. */
+@utility bg-air {
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(70% 90% at 88% -10%, color-mix(in oklab, var(--color-sky) 16%, transparent), transparent 70%),
+    radial-gradient(55% 70% at -5% 105%, color-mix(in oklab, var(--color-brand) 7%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-sky-soft) 55%, var(--color-bg)), var(--color-bg) 85%);
+}
+
+/* Gentler wash for Section tone="soft". */
+@utility bg-air-soft {
+  background-color: var(--color-surface-2);
+  background-image:
+    radial-gradient(60% 80% at 100% 0%, color-mix(in oklab, var(--color-sky) 9%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in oklab, var(--color-surface-2) 70%, var(--color-bg)), var(--color-surface-2));
+}
+
+/* Deep navy feature panel with a cool glow. Pair with scheme-deep. */
+@utility bg-air-deep {
+  background-color: var(--color-deep);
+  background-image:
+    radial-gradient(70% 120% at 100% 0%, color-mix(in oklab, var(--color-sky) 38%, transparent), transparent 62%),
+    radial-gradient(60% 90% at 0% 100%, color-mix(in oklab, #000814 30%, transparent), transparent 70%);
+}
+
+/* Re-maps tokens inside navy panels so every primitive (Button, Badge, Card, Price …) reads correctly on navy. */
+@utility scheme-deep {
+  --color-ink: var(--color-on-deep);
+  --color-ink-2: var(--color-on-deep-2);
+  --color-ink-3: var(--color-on-deep-2);
+  --color-line: color-mix(in oklab, var(--color-on-deep) 18%, transparent);
+  --color-line-strong: color-mix(in oklab, var(--color-on-deep) 55%, transparent);
+  --color-surface: color-mix(in oklab, var(--color-on-deep) 8%, transparent);
+  --color-surface-2: color-mix(in oklab, var(--color-on-deep) 12%, transparent);
+  --color-brand: var(--color-on-deep);
+  --color-brand-hover: color-mix(in oklab, var(--color-on-deep) 88%, var(--color-deep));
+  --color-on-brand: var(--color-deep);
+  --color-sky: var(--color-sky-on-deep);
+  --color-sky-soft: color-mix(in oklab, var(--color-on-deep) 12%, transparent);
+  --color-focus: var(--color-on-deep);
+  --shadow-card: none;
+  color: var(--color-on-deep);
+}
+
+/* Frosted glass for the sticky header and the mobile bar. */
+@utility glass {
+  background-color: color-mix(in oklab, var(--color-surface) 78%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+}
+
+/* Flowing air lines as a background shape coloured by `color` (text-sky, text-brand …). */
+@utility air-lines {
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 240' fill='none' stroke='%23000' stroke-linecap='round'%3E%3Cpath d='M-10 170C90 140 160 196 270 160S450 96 610 128' stroke-width='1.6' opacity='.9'/%3E%3Cpath d='M-10 196C110 170 190 220 300 186S470 130 610 156' stroke-width='1.2' opacity='.6'/%3E%3Cpath d='M-10 142C80 112 170 168 280 132S440 70 610 98' stroke-width='1.2' opacity='.5'/%3E%3Cpath d='M-10 222C120 204 210 240 320 212S490 168 610 186' stroke-width='1' opacity='.35'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 240' fill='none' stroke='%23000' stroke-linecap='round'%3E%3Cpath d='M-10 170C90 140 160 196 270 160S450 96 610 128' stroke-width='1.6' opacity='.9'/%3E%3Cpath d='M-10 196C110 170 190 220 300 186S470 130 610 156' stroke-width='1.2' opacity='.6'/%3E%3Cpath d='M-10 142C80 112 170 168 280 132S440 70 610 98' stroke-width='1.2' opacity='.5'/%3E%3Cpath d='M-10 222C120 204 210 240 320 212S490 168 610 186' stroke-width='1' opacity='.35'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+/* Hairline with a cool fade at both ends — a calm divider. */
+@utility air-rule {
+  height: 1px;
+  border: 0;
+  background-image: linear-gradient(90deg, transparent, var(--color-line) 15%, var(--color-line) 85%, transparent);
+}
+
+/* Press feedback (scale .97) for anything tappable. */
+@utility pressable {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-air);
+  &:active:not(:disabled, [aria-disabled='true']) {
+    transform: scale(0.97);
+    transition-duration: 80ms;
+  }
+}
+
+/* Soft hover lift for cards (pointer devices only). */
+@utility lift {
+  transition-property: transform, box-shadow, border-color;
+  transition-duration: 250ms;
+  transition-timing-function: var(--ease-air);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lift);
+      border-color: color-mix(in oklab, var(--color-sky) 30%, transparent);
+    }
+  }
+}
+
+/* Horizontal scroller without a visible scrollbar (tab lists, chip rows) — content stays reachable by keyboard. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Edge shadows that appear only where a wide box can still scroll (tables). */
+@utility scroll-shadow-x {
+  background:
+    linear-gradient(to right, var(--color-surface) 30%, transparent) left center / 3rem 100% no-repeat local,
+    linear-gradient(to left, var(--color-surface) 30%, transparent) right center / 3rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in oklab, var(--color-ink) 16%, transparent), transparent) left
+      center / 0.875rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in oklab, var(--color-ink) 16%, transparent), transparent)
+      right center / 0.875rem 100% no-repeat scroll,
+    var(--color-surface);
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Component styles that target plain markup ────────────────────────────────────────────────── */
+@layer components {
+  /* Accordion (styled <details>) — smooth open where ::details-content is supported. */
+  .ui-accordion > summary {
+    list-style: none;
+  }
+  .ui-accordion > summary::-webkit-details-marker {
+    display: none;
+  }
+  .ui-accordion::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 250ms var(--ease-air),
+      content-visibility 250ms allow-discrete;
+  }
+  .ui-accordion[open]::details-content {
+    block-size: auto;
+  }
+  .ui-accordion [data-accordion-icon] {
+    transition: transform 250ms var(--ease-air);
+  }
+  .ui-accordion[open] [data-accordion-icon] {
+    transform: rotate(45deg);
+  }
+
+  /* Table */
+  .ui-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--text-small);
+    line-height: 1.55;
+  }
+  .ui-table th,
+  .ui-table td {
+    padding: 0.875rem 1rem;
+    text-align: start;
+    vertical-align: top;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .ui-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--color-surface-2);
+    color: var(--color-ink-2);
+    font-weight: 600;
+    font-size: var(--text-meta);
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  .ui-table tbody th {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .ui-table tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+  @media (hover: hover) {
+    .ui-table tbody tr:hover > * {
+      background-color: color-mix(in oklab, var(--color-sky-soft) 45%, transparent);
+    }
+  }
+  .ui-table [data-align='end'] {
+    text-align: end;
+  }
+  .ui-table [data-align='center'] {
+    text-align: center;
+  }
+  .ui-table [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .ui-table[data-sticky-first] tbody > tr > :first-child,
+  .ui-table[data-sticky-first] thead > tr > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+  }
+  .ui-table[data-sticky-first] tbody > tr > :first-child {
+    background-color: var(--color-surface);
+  }
+
+  /* Sheet (native <dialog>) motion, keyed by data-side / data-state. */
+  .ui-sheet {
+    --sheet-in: 400ms;
+    --sheet-out: 200ms;
+  }
+  .ui-sheet[data-state='open'] {
+    animation: sheet-in var(--sheet-in) var(--ease-air) both;
+  }
+  .ui-sheet[data-state='closing'] {
+    animation: sheet-out var(--sheet-out) var(--ease-exit) both;
+  }
+  .ui-sheet[data-state='open']::backdrop {
+    animation: fade-in 300ms var(--ease-air) both;
+  }
+  .ui-sheet[data-state='closing']::backdrop {
+    animation: fade-out var(--sheet-out) var(--ease-exit) both;
+  }
+  .ui-sheet[data-side='right'] {
+    --sheet-from: translateX(100%);
+  }
+  .ui-sheet[data-side='left'] {
+    --sheet-from: translateX(-100%);
+  }
+  .ui-sheet[data-side='bottom'] {
+    --sheet-from: translateY(100%);
+  }
+  .ui-sheet[data-side='center'] {
+    --sheet-from: translateY(16px) scale(0.98);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: var(--sheet-from);
+    opacity: 0.6;
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: var(--sheet-from);
+    opacity: 0.4;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
