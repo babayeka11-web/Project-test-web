@@ -189,8 +189,8 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
         </aside>
 
         <div className="flex min-w-0 flex-col gap-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_13rem]">
-            <Field label="ค้นหารุ่น">
+          <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_13rem]">
+            <Field label="ค้นหารุ่น" className="col-span-2 sm:col-span-1">
               <Input
                 type="search"
                 icon="search"
@@ -212,14 +212,19 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
                 ))}
               </Select>
             </Field>
+            <Button variant="ghost" icon="sliders" onClick={() => setFilterOpen(true)} className="sm:hidden">
+              ตัวกรอง{facetCount ? ` (${facetCount})` : ''}
+            </Button>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <p role="status" aria-live="polite" className="text-small text-ink-2">
-              <strong className="font-semibold text-ink">{thousands(result.list.length)} ซีรีส์ · {thousands(result.skuTotal)} รุ่น</strong>
+              <strong className="font-semibold text-ink">
+                {thousands(result.list.length)} ซีรีส์ · {thousands(result.skuTotal)} รุ่น
+              </strong>
               <span className="text-ink-3"> · ราคาก่อน VAT</span>
             </p>
-            <div className="lg:hidden">
+            <div className="hidden sm:block lg:hidden">
               <Button variant="ghost" icon="sliders" onClick={() => setFilterOpen(true)}>
                 ตัวกรอง{facetCount ? ` (${facetCount})` : ''}
               </Button>

@@ -82,16 +82,16 @@ export function CompareSheet({
         </div>
       )}
       <TableShell label="ตารางเทียบรุ่นแอร์">
-        <table className="ui-table" data-sticky-first style={{ minWidth: `${9 + items.length * 11}rem` }}>
+        <table className="ui-table" data-sticky-first style={{ minWidth: `${7 + items.length * 10}rem` }}>
           <caption className="sr-only">เทียบรุ่นแอร์ {items.length} รุ่น</caption>
           <thead>
             <tr>
-              <th scope="col" className="w-36 min-w-36">
+              <th scope="col" className="w-28 min-w-28 sm:w-36 sm:min-w-36">
                 <span className="sr-only">รายการ</span>
               </th>
               {items.map(i => (
                 <th key={`${i.m.slug}-${i.k.sku}`} scope="col" className="!whitespace-normal align-top">
-                  <div className="flex min-w-40 flex-col items-start gap-1.5 pb-1">
+                  <div className="flex min-w-36 flex-col items-start gap-1.5 pb-1">
                     <span className="text-meta font-semibold text-ink-3">{i.m.brandName}</span>
                     <span className="text-small font-semibold leading-snug text-ink">{i.m.series}</span>
                     <span className="break-all font-mono text-meta font-normal text-ink-2">{i.k.sku}</span>
