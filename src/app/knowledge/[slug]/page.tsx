@@ -34,34 +34,42 @@ export default async function GuidePage({ params }: { params: Promise<Params> })
         meta={`อ่านประมาณ ${g.min} นาที · ข้อมูลทั่วไปเพื่อช่วยตัดสินใจ ทีมช่างยืนยันอีกครั้งที่หน้างานจริง`}
       />
 
-      <Section spacing="compact" width="text">
-        <article className="flex flex-col gap-10">
-          <GuideBody blocks={g.body} />
+      <Section spacing="compact">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,42rem)_minmax(0,24rem)] lg:justify-between lg:gap-16">
+          <article className="min-w-0">
+            <GuideBody blocks={g.body} />
+          </article>
 
-          <Card tone="sky" padding="md" className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-brand">
-                <Icon name="sparkle" size={22} />
-              </span>
-              <h2 className="text-h3">ลองเอง</h2>
-            </div>
-            <p className="text-small text-ink-2">อ่านแล้วลองต่อได้เลย ใช้ตัวเลขจริงของบริษัท ไม่ต้องกรอกข้อมูลส่วนตัว</p>
-            <div className="flex flex-wrap gap-3">
-              <Button href={tool.href}>{tool.label}</Button>
-              {more.map(t => (
-                <Button key={t.href} href={t.href} variant="ghost">
-                  {t.label}
+          <aside aria-labelledby="try-title" className="lg:sticky lg:top-28 lg:self-start">
+            <Card tone="sky" padding="md" className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-brand">
+                  <Icon name="sparkle" size={22} />
+                </span>
+                <h2 id="try-title" className="text-h3">
+                  ลองเอง
+                </h2>
+              </div>
+              <p className="text-small text-ink-2">อ่านแล้วลองต่อได้เลย ใช้ตัวเลขจริงของบริษัท ไม่ต้องกรอกข้อมูลส่วนตัว</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-col">
+                <Button href={tool.href} fullWidth>
+                  {tool.label}
                 </Button>
-              ))}
-            </div>
-          </Card>
-        </article>
+                {more.map(t => (
+                  <Button key={t.href} href={t.href} variant="ghost" fullWidth>
+                    {t.label}
+                  </Button>
+                ))}
+              </div>
+            </Card>
+          </aside>
+        </div>
       </Section>
 
-      <Section tone="soft" spacing="compact" width="text" eyebrow="อ่านต่อ" title="เรื่องอื่นในหมวดความรู้">
-        <nav aria-label="เรื่องก่อนหน้าและถัดไป" className="flex flex-col gap-4">
+      <Section tone="soft" spacing="compact" eyebrow="อ่านต่อ" title="เรื่องอื่นในหมวดความรู้">
+        <nav aria-label="เรื่องก่อนหน้าและถัดไป" className="flex flex-col gap-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {prev ? (
+            {prev && (
               <Card href={`/knowledge/${prev.slug}/`} padding="sm" className="flex h-full flex-col gap-1.5">
                 <span className="inline-flex items-center gap-1.5 text-meta text-ink-3">
                   <Icon name="arrow-left" size={14} />
@@ -69,11 +77,9 @@ export default async function GuidePage({ params }: { params: Promise<Params> })
                 </span>
                 <span className="text-h3">{prev.th}</span>
               </Card>
-            ) : (
-              <span className="hidden sm:block" />
             )}
             {next && (
-              <Card href={`/knowledge/${next.slug}/`} padding="sm" className="flex h-full flex-col gap-1.5 sm:items-end sm:text-right">
+              <Card href={`/knowledge/${next.slug}/`} padding="sm" className="flex h-full flex-col gap-1.5 sm:col-start-2">
                 <span className="inline-flex items-center gap-1.5 text-meta text-ink-3">
                   เรื่องถัดไป
                   <Icon name="arrow-right" size={14} />
