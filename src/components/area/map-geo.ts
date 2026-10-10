@@ -78,10 +78,9 @@ const BKK = 'กรุงเทพมหานคร';
 /** Province labels: level 1 always, 2 from 640 px, 3 from 1024 px (the inner ring is crowded on phones). */
 const LABELS: Record<string, { text?: string; level: 1 | 2 | 3; dx?: number; dy?: number }> = {
   กรุงเทพมหานคร: { text: 'กรุงเทพฯ', level: 1, dx: 0.02, dy: 0.05 },
-  นนทบุรี: { level: 3, dx: -0.08, dy: 0.05 },
   ปทุมธานี: { level: 2, dy: 0.03 },
   สมุทรปราการ: { level: 3, dx: 0.12, dy: -0.04 },
-  สมุทรสาคร: { level: 3, dx: -0.1, dy: -0.05 },
+  สมุทรสาคร: { level: 3, dx: -0.16, dy: -0.02 },
   นครปฐม: { level: 2 },
   พระนครศรีอยุธยา: { text: 'อยุธยา', level: 1 },
   ฉะเชิงเทรา: { level: 1, dx: -0.2 },
@@ -91,12 +90,10 @@ const LABELS: Record<string, { text?: string; level: 1 | 2 | 3; dx?: number; dy?
   สุพรรณบุรี: { level: 2 },
   กาญจนบุรี: { level: 3, dx: 0.35, dy: -0.25 },
   เพชรบุรี: { level: 2, dx: 0.1 },
-  สมุทรสงคราม: { level: 3, dx: 0.04, dy: -0.02 },
   สระบุรี: { level: 2 },
-  นครนายก: { level: 3 },
+  นครนายก: { level: 3, dx: -0.12, dy: 0.06 },
   ปราจีนบุรี: { level: 2, dx: -0.1 },
   ลพบุรี: { level: 3, dy: -0.15 },
-  อ่างทอง: { level: 3 },
 };
 
 export type ServiceMap = {

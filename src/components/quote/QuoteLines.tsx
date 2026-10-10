@@ -57,7 +57,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
   };
 
   return (
-    <div className="@container min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card">
+    <div className="@container min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card print:rounded-none print:border-0 print:shadow-none">
       {/* header: count + clear all */}
       <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-5 py-3 sm:px-7">
         <p ref={headRef} tabIndex={-1} className="text-small text-ink-2">
@@ -70,7 +70,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
             ref={confirmRef}
             role="group"
             aria-labelledby={`${titleId}-confirm`}
-            className="flex flex-wrap items-center gap-2"
+            className="flex flex-wrap items-center gap-2 print:hidden"
             onKeyDown={e => {
               if (e.key === 'Escape') {
                 e.stopPropagation();
@@ -89,7 +89,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
             </Button>
           </div>
         ) : (
-          <div ref={clearBtnRef}>
+          <div ref={clearBtnRef} className="print:hidden">
             <Button size="sm" variant="quiet" icon="trash" onClick={() => setConfirming(true)}>
               ล้างทั้งหมด
             </Button>
@@ -118,7 +118,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
       })}
 
       {/* add more */}
-      <div className="flex flex-wrap items-center gap-1 border-t border-line px-3 py-3 sm:px-5">
+      <div className="flex flex-wrap items-center gap-1 border-t border-line px-3 py-3 sm:px-5 print:hidden">
         <span className="px-2 text-meta text-ink-3">เพิ่มรายการ</span>
         <Button href="/cleaning/#book" size="sm" variant="quiet" icon="plus">
           ล้างแอร์
@@ -173,7 +173,7 @@ function LineRow({ line: l, onRemove }: { line: CartLine; onRemove: () => void }
       </div>
 
       {/* remove (top-right on phones, last column on wide boxes) */}
-      <div className="col-start-2 row-start-1 self-start justify-self-end @xl:col-start-4">
+      <div className="col-start-2 row-start-1 self-start justify-self-end @xl:col-start-4 print:hidden">
         {!rush && <IconButton id={rmId(l.id)} icon="trash" label={`ลบ ${l.name}`} className="text-ink-2 hover:text-bad" onClick={onRemove} />}
       </div>
 
@@ -184,7 +184,12 @@ function LineRow({ line: l, onRemove }: { line: CartLine; onRemove: () => void }
             {survey ? 'ทีมแจ้งราคาก่อนเริ่มงาน' : rush ? 'ต่อการเข้างาน' : l.group === 'contract' ? `1 สัญญา${l.units ? ` · ${l.units} เครื่อง` : ''}` : `จำนวน ${l.qty}`}
           </p>
         ) : (
-          <Stepper size="sm" value={l.qty} min={1} max={MAX_QTY} label={`จำนวน ${l.name}`} onChange={q => cart.setQty(l.id, q)} />
+          <>
+            <div className="print:hidden">
+              <Stepper size="sm" value={l.qty} min={1} max={MAX_QTY} label={`จำนวน ${l.name}`} onChange={q => cart.setQty(l.id, q)} />
+            </div>
+            <p className="hidden text-small print:block">จำนวน {l.qty}{l.unit ? ` ${l.unit}` : ''}</p>
+          </>
         )}
       </div>
 

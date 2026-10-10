@@ -87,7 +87,7 @@ export function quoteNotes(lines: readonly CartLine[], zone: Zone | null, t: Quo
     out.push({ id: 'survey', tone: 'info', text: `${t.surveys} รายการประเมินหน้างาน ทีมแจ้งราคาก่อนเริ่มงาน` });
   }
   if (t.cleanEx > 0) {
-    if (t.travelSmall && zone?.tier !== 'extended') {
+    if (t.travelSmall && zone?.tier !== 'extended' && zone?.tier !== 'out') {
       out.push({
         id: 'min',
         tone: 'info',

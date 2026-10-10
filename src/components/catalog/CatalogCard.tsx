@@ -8,6 +8,7 @@ import { Badge, Button, Icon, Price, cn } from '@/components/ui';
 import type { CatalogSeriesLite, SkuLite } from '@/lib/domain/catalog';
 import { baht, btuFmt, EX_TH, kbtu } from '@/lib/domain/format';
 import { TYPE_BY_ID } from '@/lib/domain/types';
+import { sizeLabels } from './spec';
 
 export type CatalogCardProps = {
   m: CatalogSeriesLite;
@@ -27,7 +28,7 @@ export function CatalogCard({ m, skus, picked, onPick, modelHref, seriesHref, in
   const name = `${m.brandName} ${m.series}`;
   const install = picked.installStdEx != null ? picked.price + picked.installStdEx : null;
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
+    <article className="flex w-full min-w-0 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
       <div className="relative grid place-items-center bg-air-soft px-6 pb-3 pt-10 [&_.type-art-air]:[animation:none]">
         <TypeArt type={m.type} aria-hidden="true" className="h-24 w-32 text-brand" />
         <Badge tone="outline" className="absolute left-3 top-3">
@@ -101,6 +102,7 @@ export function SizePicker({
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const at = Math.max(0, skus.indexOf(picked));
+  const labels = sizeLabels(skus.map(k => k.btu), kbtu);
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
     const n = skus.length;
     const map: Record<string, number> = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: n - 1 };
@@ -123,7 +125,7 @@ export function SizePicker({
             type="button"
             role="radio"
             aria-checked={on}
-            aria-label={`${btuFmt(k.btu)} · ${baht(k.price)} ${EX_TH}`}
+            aria-label={`${btuFmt(k.btu)} รุ่น ${k.sku} · ${baht(k.price)} ${EX_TH}`}
             tabIndex={on ? 0 : -1}
             onClick={() => onPick(k)}
             onKeyDown={e => onKey(e, i)}
@@ -132,7 +134,7 @@ export function SizePicker({
               on ? 'border-brand bg-brand text-on-brand' : 'border-line-strong/50 bg-surface text-ink-2 hover:border-brand hover:text-brand',
             )}
           >
-            {kbtu(k.btu)}
+            {labels[i]}
           </button>
         );
       })}

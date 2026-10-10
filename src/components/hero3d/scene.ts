@@ -42,6 +42,8 @@ export type WallUnitSceneOptions = {
   reducedMotion: boolean;
   /** Colour of the air wisps and the indicator light (a CSS colour, normally the --color-sky token). */
   airColor: string;
+  /** Opacity multiplier of the wisps (1 on a light page). */
+  airGain?: number;
   /** Called once, after the first frame is on screen. */
   onFirstFrame?: () => void;
   /** Called when the GPU drops the WebGL context — the caller shows the still fallback again. */
@@ -50,7 +52,8 @@ export type WallUnitSceneOptions = {
 
 export type WallUnitScene = {
   setReducedMotion(reduced: boolean): void;
-  setAirColor(color: string): void;
+  /** `gain` scales the wisps' opacity (about 1.7 on a dark page, where soft mist needs more presence). */
+  setAirColor(color: string, gain?: number): void;
   dispose(): void;
 };
 
@@ -106,7 +109,7 @@ void main() {
   vec2 d = h.xy - t.xy;
   float len = length(d);
   vec2 n = len > 1e-5 ? vec2(-d.y, d.x) / len : vec2(0.0, 1.0);
-  p.xy += n * aWidth * mix(0.45, 1.0, position.x) * position.y;
+  p.xy += n * aWidth * position.y;
   vAlpha = aAlpha;
   vAcross = position.y;
   vAlong = position.x;
@@ -119,8 +122,10 @@ varying float vAlpha;
 varying float vAcross;
 varying float vAlong;
 void main() {
-  float across = 1.0 - abs(vAcross);
-  float a = vAlpha * across * across * (3.0 - 2.0 * across) * smoothstep(0.0, 0.7, vAlong) * (1.0 - 0.5 * smoothstep(0.8, 1.0, vAlong));
+  // soft elliptical puff: strongest in the middle, fading to nothing at the rim
+  float x = vAlong * 2.0 - 1.0;
+  float r2 = x * x + vAcross * vAcross;
+  float a = vAlpha * pow(max(0.0, 1.0 - r2), 2.0);
   if (a < 0.003) discard;
   gl_FragColor = vec4(uColor, a);
   #include <colorspace_fragment>
@@ -128,7 +133,7 @@ void main() {
 
 type Wisp = { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; span: number; seed: number; strength: number };
 
-const WISPS = 72;
+const WISPS = 110;
 const LOUVER_MIN = 0.3; // louver tilt (rad), front edge down
 const LOUVER_MAX = 0.62;
 
@@ -146,6 +151,7 @@ const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 /** Builds the scene inside `host` (a sized, positioned element). Throws when WebGL is not available. */
 export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOptions): WallUnitScene {
   let reduced = opts.reducedMotion;
+  let airGain = opts.airGain ?? 1;
 
   /* ----- renderer ----- */
   const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -311,7 +317,7 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
     w.z = louver.position.z + Math.cos(tilt) * along + 0.02;
     const speed = 0.4 + rand() * 0.22;
     const spread = (rand() - 0.5) * 0.18;
-    w.vx = (rand() - 0.5) * 0.08;
+    w.vx = (rand() - 0.5) * 0.08 + (w.x / outletW) * 0.16; // the stream fans out sideways a little
     w.vy = -Math.sin(tilt + spread) * speed;
     w.vz = Math.cos(tilt + spread) * speed;
     w.life = 0;
@@ -342,7 +348,7 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
   const writeWisps = () => {
     for (let i = 0; i < WISPS; i++) {
       const w = wisps[i];
-      const trail = 0.42 + 0.25 * w.life;
+      const trail = 0.7 + 0.3 * w.life;
       headArr[i * 3] = w.x;
       headArr[i * 3 + 1] = w.y;
       headArr[i * 3 + 2] = w.z;
@@ -350,8 +356,8 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
       tailArr[i * 3 + 1] = w.y - w.vy * trail;
       tailArr[i * 3 + 2] = w.z - w.vz * trail;
       const fade = Math.sin(Math.PI * Math.min(1, w.life));
-      alphaArr[i] = 0.4 * w.strength * fade * fade;
-      widthArr[i] = 0.008 + 0.03 * w.life;
+      alphaArr[i] = 0.15 * airGain * w.strength * fade * fade;
+      widthArr[i] = 0.04 + 0.09 * w.life;
     }
     aHead.needsUpdate = true;
     aTail.needsUpdate = true;
@@ -364,7 +370,8 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
   writeWisps();
 
   /* ----- colour from the theme token ----- */
-  const setAirColor = (css: string) => {
+  const setAirColor = (css: string, gain?: number) => {
+    if (gain !== undefined) airGain = gain;
     try {
       airColor.setStyle(css || '#0b74b5');
     } catch {
@@ -386,7 +393,7 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     const halfV = Math.tan((camera.fov * Math.PI) / 360);
-    const dist = Math.max(2.9 / (2 * halfV * camera.aspect), 2.15 / (2 * halfV));
+    const dist = Math.max(2.65 / (2 * halfV * camera.aspect), 2.1 / (2 * halfV));
     camera.position.set(0, target.y + dist * 0.05, dist);
     camera.lookAt(target.x, target.y, target.z);
     camera.updateProjectionMatrix();
@@ -544,8 +551,9 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
       idleFor = RESUME_AFTER;
       kick();
     },
-    setAirColor(css) {
-      setAirColor(css);
+    setAirColor(css, gain) {
+      setAirColor(css, gain);
+      writeWisps();
       kick();
     },
     dispose() {
