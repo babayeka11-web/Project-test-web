@@ -16,7 +16,8 @@ import { baht } from '@/lib/domain/format';
 import { cleanFrom, getFaq, getServices, getSkuCount, serviceFrom } from '@/lib/domain/pricebook';
 
 export const metadata: Metadata = {
-  title: 'ล้างแอร์ ติดตั้ง ซ่อม กรุงเทพฯ',
+  // the layout's title template does not apply to the page in its own segment, so the brand is written out here
+  title: { absolute: 'ล้างแอร์ ติดตั้ง ซ่อม กรุงเทพฯ · SBP AirCare' },
   description: `ล้างแอร์ ติดตั้ง ซ่อม และขายแอร์ในกรุงเทพฯ และปริมณฑล โดยทีมช่างของ ${COMPANY.th} ล้างแอร์เริ่ม ${baht(cleanFrom())} ต่อเครื่อง ราคามาตรฐานก่อน VAT ดูยอดรวมก่อนจอง`,
   alternates: { canonical: './' },
 };
