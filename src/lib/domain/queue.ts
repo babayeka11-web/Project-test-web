@@ -60,9 +60,13 @@ const nextOpen = (iso: string): string => {
   for (let i = 0; i < 7 && !isOpen(d); i++) d = addDays(d, 1);
   return d;
 };
-/** 'พฤ. 9 ต.ค.' */
-export const dateTh = (iso: string): string =>
-  new Date(iso + 'T12:00:00Z').toLocaleDateString('th-TH', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' });
+const WEEKDAY_TH = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'] as const;
+const MONTH_TH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'] as const;
+/** 'พฤ. 9 ต.ค.' — fixed names, not the runtime's locale data (ICU builds differ: 'พฤ.' vs 'พฤหัส'). */
+export const dateTh = (iso: string): string => {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${WEEKDAY_TH[dow(iso)]} ${d} ${MONTH_TH[m - 1]}`;
+};
 
 /** First date a normal (non-rush) booking can take. */
 export const earliestNormal = (now: BkkNow = bkkNow()): string => nextOpen(addDays(now.date, LEAD_DAYS));
