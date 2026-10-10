@@ -39,8 +39,12 @@ function lineOf(row: PriceRow, level?: CleanLevel): CartLineInput {
   switch (row.k) {
     case 'c':
       return cleanPriceLine({ pkg: row.pkg as CleanPkgId, level: lv ?? 'C1', type: row.ty!, range: row.rg ?? '', ex });
-    case 'x':
-      return cleanExtraLine({ name: lv ? `${row.n} (${LEVEL_TH[lv].th})` : row.n, ex, ty: row.sh });
+    case 'x': {
+      const base = cleanExtraLine({ name: lv ? `${row.n} (${LEVEL_TH[lv].th})` : row.n, ex, ty: row.sh });
+      if (!row.pkg) return base;
+      // same keys as /cleaning/ ExtraPrices: an extra priced per package stays one line per package
+      return { ...base, key: row.pkg === 'Basic Clean' ? base.key : `${base.key}|${row.pkg}`, detail: PKG_TH[row.pkg].th };
+    }
     case 'i':
       return installItemLine({ code: row.code ?? row.id, name: row.n, ex, unit: row.u });
     default:
@@ -431,7 +435,9 @@ export function PriceCenter({ rows, pool }: { rows: PriceRow[]; pool: string[] }
     try {
       const u = new URL(window.location.href);
       u.searchParams.set('tab', id);
-      window.history.replaceState(window.history.state, '', u.toString());
+      // null state (not window.history.state, which carries Next's own marker and is passed through untouched): Next
+      // then syncs useSearchParams, so a later quick link to ?tab=… still switches the tab
+      window.history.replaceState(null, '', u.toString());
     } catch {
       /* the address bar is a convenience only */
     }

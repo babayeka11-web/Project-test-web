@@ -127,7 +127,12 @@ function RepairRowItem({ r }: { r: ListRow }) {
         )}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 sm:flex-col sm:items-end sm:justify-start">
-        {r.extra ? (
+        {r.travel ? (
+          <span className="text-small font-medium text-ink-2">
+            คิดตามระยะทาง
+            <span className="block text-meta font-normal text-ink-3">ใบเสนอราคาคิดให้เองจากพื้นที่หน้างาน</span>
+          </span>
+        ) : r.extra ? (
           <span className="text-small font-medium text-ink-2">
             มีค่าใช้จ่ายเพิ่มเติม
             <span className="block text-meta font-normal text-ink-3">ทีมแจ้งในใบเสนอราคา</span>
@@ -135,12 +140,18 @@ function RepairRowItem({ r }: { r: ListRow }) {
         ) : (
           <Price amount={r.ex} size="md" stacked className="sm:items-end" />
         )}
-        <AddToQuote
-          size="sm"
-          variant="soft"
-          label={assessed ? 'ขอประเมินราคา' : 'ใส่ใบเสนอราคา'}
-          lines={() => [repairLine({ name: r.name, ex: r.ex, unit: r.unit })]}
-        />
+        {r.travel ? (
+          <Button href="/area/" size="sm" variant="soft" icon="pin">
+            ดูค่าเดินทางตามพื้นที่
+          </Button>
+        ) : (
+          <AddToQuote
+            size="sm"
+            variant="soft"
+            label={assessed ? 'ขอประเมินราคา' : 'ใส่ใบเสนอราคา'}
+            lines={() => [repairLine({ name: r.name, ex: r.ex, unit: r.unit })]}
+          />
+        )}
       </div>
     </li>
   );

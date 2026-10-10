@@ -18,6 +18,8 @@ export type ListRow = {
   exc: string | null;
   /** price withheld on purpose: out-of-hours work is "มีค่าใช้จ่ายเพิ่มเติม", never a number (ARCHITECTURE §6.10) */
   extra: boolean;
+  /** travel / Mobilization row: the fee follows the service-area rule (§6.5) and the quote adds it itself — no flat number */
+  travel: boolean;
 };
 
 type Source = {
@@ -31,21 +33,26 @@ type Source = {
 };
 
 const OUT_OF_HOURS = /เงื่อนไขเวลา|กลางคืน|วันหยุด/;
+// the same rows /prices/ shows as "คิดตามระยะทาง" (components/prices/build.ts TRAVEL_ROW)
+const TRAVEL_ROW = /ค่าเดินทาง|Mobilization/;
 
-/** Pricebook repair items → list rows. Out-of-hours work loses its number and becomes an assessed line. */
+/** Pricebook repair items → list rows. Out-of-hours work loses its number and becomes an assessed line; the travel row
+ *  loses its flat ฿ and points to the service-area rule instead. */
 export function toListRows(items: readonly Source[]): ListRow[] {
   return items.map((r, i) => {
     const extra = r.cat === 'เงื่อนไขเวลา' || OUT_OF_HOURS.test(r.name);
+    const travel = !extra && (r.cat === 'Mobilization' || TRAVEL_ROW.test(r.name));
     return {
       id: `r${i}`,
       cat: r.cat,
       name: r.name,
       unit: r.unit,
-      ex: extra ? null : r.ex,
+      ex: extra || travel ? null : r.ex,
       warranty: r.warranty,
       inc: r.inc,
       exc: r.exc,
       extra,
+      travel,
     };
   });
 }

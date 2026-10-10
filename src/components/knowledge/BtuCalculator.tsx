@@ -47,8 +47,14 @@ const SUN_OPTIONS = [
 /** Allowed ranges (metres / watts). Kept wide enough for the warehouse preset (20 × 14 × 6). */
 const LIMIT = { w: [1, 60], d: [1, 60], h: [2, 12], equip: [0, 100000] } as const;
 
+/** Metres: '3.5' or '3,5' (a lone comma as the decimal mark — metres never need a thousands separator). */
 const num = (s: string): number => {
   const t = s.trim().replace(',', '.');
+  return t === '' ? NaN : Number(t);
+};
+/** Watts: commas are thousands separators, as the field's own hint writes them ('6,000' → 6000, never 6.0). */
+const numWatts = (s: string): number => {
+  const t = s.trim().replace(/[,\s]/g, '');
   return t === '' ? NaN : Number(t);
 };
 const inRange = (n: number, [lo, hi]: readonly [number, number] | readonly number[]) => Number.isFinite(n) && n >= lo && n <= hi;
@@ -76,7 +82,7 @@ export function BtuCalculator({ catalog }: BtuCalculatorProps) {
   const w = num(wS);
   const d = num(dS);
   const h = num(hS);
-  const equip = num(eS);
+  const equip = numWatts(eS);
   const dimError = !inRange(w, LIMIT.w)
     ? 'กรอกความกว้าง 1–60 เมตร เช่น 3.5'
     : !inRange(d, LIMIT.d)

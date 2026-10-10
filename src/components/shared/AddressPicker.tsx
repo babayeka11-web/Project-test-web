@@ -74,9 +74,18 @@ export function AddressPicker({
     if (!syncCart && value && book) setLocalZone(zoneOf(book, value));
   }, [syncCart, value, book]);
 
-  const choose = (pick: AddrPick | null) => {
-    const z = pick && book ? zoneOf(book, pick) : null;
-    if (syncCart) cart.setAddress(pick, pick ? z : null);
+  // the area changed from outside (e.g. the example chips on /area/): show it instead of half-typed text
+  useEffect(() => {
+    setEditing(false);
+  }, [current]);
+
+  // `loaded` is the book ensureBook() just returned: inside the geolocation callback the `book` state of this render is
+  // still null, and without it the pick would be stored with no zone (no travel fee). With no book at all the cart
+  // computes the zone itself (zone undefined).
+  const choose = (pick: AddrPick | null, loaded?: AddressBook | null) => {
+    const bk = loaded ?? book;
+    const z = pick && bk ? zoneOf(bk, pick) : null;
+    if (syncCart) cart.setAddress(pick, pick ? (bk ? z : undefined) : null);
     else setLocalZone(z);
     onPick?.(pick, z);
     setEditing(false);
@@ -103,7 +112,7 @@ export function AddressPicker({
           }
         }
         if (!best || dist > 25) return setGeoMsg(`ตำแหน่งนี้อยู่นอกพื้นที่ในรายการ (ห่างสำนักงานใหญ่ประมาณ ${roadKm(la, lo)} กม.) ฝากข้อมูลให้ทีมประเมินได้`);
-        choose({ p: best.p, d: best.d, s: best.s, z: best.z });
+        choose({ p: best.p, d: best.d, s: best.s, z: best.z }, b);
       },
       () => {
         setLocating(false);
@@ -152,7 +161,14 @@ export function AddressPicker({
               setActive(0);
             }}
             onKeyDown={onKey}
-            onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+            // leaving the field without picking drops the typed text, so the field never shows a different area
+            // from the one the quote uses (with no pick yet, the typed text stays)
+            onBlur={() =>
+              window.setTimeout(() => {
+                setOpen(false);
+                setEditing(false);
+              }, 150)
+            }
           />
           {expanded && (
             <ul id={listId} role="listbox" aria-label="พื้นที่ที่ตรงกัน" className="absolute inset-x-0 top-full z-30 mt-2 max-h-80 overflow-auto rounded-control border border-line bg-surface p-1 shadow-pop">

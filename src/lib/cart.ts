@@ -67,7 +67,8 @@ function read(): CartState {
     const addr = j.addr && typeof j.addr.p === 'string' ? j.addr : null;
     const zone = j.zone && typeof j.zone.tier === 'string' ? j.zone : null;
     const pref = j.pref && typeof j.pref.date === 'string' && j.pref.date >= bkkNow().date ? { date: j.pref.date, slot: String(j.pref.slot || '') } : { date: '', slot: '' };
-    if (addr && j.zv !== ZONE_RULES_V) recomputeZone(addr);
+    // stale rules, or an address saved without its zone (the zone is always derivable from the address book)
+    if (addr && (j.zv !== ZONE_RULES_V || !zone)) recomputeZone(addr);
     return { lines, addr, zone, zoneInput: typeof j.zoneInput === 'string' ? j.zoneInput : '', pref };
   } catch {
     return EMPTY;
@@ -137,13 +138,17 @@ export const cart = {
     return state;
   },
   subscribe,
-  /** Add a line; a line with the same key adds its qty to the existing one (a survey request is kept once). Returns its id. */
+  /** Add a line. An exact duplicate (same key, unit price and detail) adds its qty to the existing line; one-per-quote
+   *  lines (survey request, annual contract, rush fee) are kept once. Same key at another price or detail — e.g. excess
+   *  pipe priced per machine on one page and per metre on another, or one cleaning extra in two packages — stays a
+   *  separate line, so a merge never re-prices metres at the first line's rate. Returns the line's id. */
   add(line: CartLineInput): string {
     ensureLoaded();
     const qty = line.qty == null ? 1 : clampQty(line.qty);
-    const same = state.lines.find(i => i.key && i.key === line.key);
+    const same = state.lines.find(i => i.key && i.key === line.key && i.unitEx === line.unitEx && (i.detail ?? '') === (line.detail ?? ''));
     if (same) {
-      if (line.kind !== 'survey') set({ lines: state.lines.map(i => (i === same ? { ...i, qty: clampQty(i.qty + qty) } : i)) });
+      const once = line.kind === 'survey' || line.fixed || line.group === 'contract' || line.group === 'rush';
+      if (!once) set({ lines: state.lines.map(i => (i === same ? { ...i, qty: clampQty(i.qty + qty) } : i)) });
       return same.id;
     }
     const id = newId();

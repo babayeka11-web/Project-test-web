@@ -164,7 +164,10 @@ export function productLines(p: ProductPick): QuoteLine[] {
   }
   p.addons.forEach(a => {
     if (a.flag || a.item.ex == null) {
-      L.push({ kind: 'survey', group: 'addon', key: `S-${a.item.code}`, name: a.item.name, detail: `สำหรับ ${p.sku}`, unitEx: null, qty: 1 });
+      // an installation survey (INS-…, the survey-first models) is installation work like installItemLine files it — not
+      // small add-on work, which would add the ฿1,000 small-visit charge to a machine sale
+      const group = /^INS-/.test(a.item.code) ? 'install' : 'addon';
+      L.push({ kind: 'survey', group, key: `S-${a.item.code}`, name: a.item.name, detail: `สำหรับ ${p.sku}`, unitEx: null, qty: 1 });
     } else if (a.qty > 0) {
       L.push({ kind: 'addon', group: 'addon', key: `A-${a.item.code}`, name: a.item.name, detail: `${a.qty} ${a.item.unit} × ${p.qty} เครื่อง`, unitEx: a.item.ex * a.qty, qty: p.qty });
     }

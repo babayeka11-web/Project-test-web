@@ -31,8 +31,9 @@ export function ContractProvider({ table, children }: { table: CleanRateTable; c
         size: state.size,
         deep: state.deep,
         high: state.high,
-        // an unknown or out-of-range place does not change the travel rule — the estimate stays on the core-area rule
-        zone: state.zone && (tier === 'core' || tier === 'extended') ? state.zone : null,
+        // an unknown place stays on the core-area rule; an out-of-range one (> 150 km) carries no travel in the figure,
+        // which is what its notice says ("ตัวเลขนี้ยังไม่รวมค่าเดินทาง") — the team prices that trip as project work
+        zone: state.zone && tier !== 'unknown' ? state.zone : null,
       }),
     };
   }, [table, state]);

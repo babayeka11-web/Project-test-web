@@ -247,3 +247,13 @@ describe('repair list model', () => {
     expect(find('zzzz')).toEqual([]);
   });
 });
+
+describe('repair price list travel row', () => {
+  it('the travel / Mobilization row has no flat price — travel follows the service-area rule', () => {
+    const rows = toListRows(getRepairItems());
+    const travel = rows.filter(r => /ค่าเดินทาง|Mobilization/.test(r.name) && !r.extra);
+    expect(travel.length).toBeGreaterThan(0);
+    travel.forEach(r => expect([r.travel, r.ex]).toEqual([true, null]));
+    expect(rows.filter(r => r.travel).every(r => r.ex == null)).toBe(true);
+  });
+});

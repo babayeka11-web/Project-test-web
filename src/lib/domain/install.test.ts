@@ -28,6 +28,19 @@ describe('product page lines', () => {
     expect(t.surveys).toBe(1);
     expect(t.travel).toBe(0);
   });
+  it('a survey-first model (installation survey, no package) adds no small-visit charge to the machine', () => {
+    const L = productLines({
+      brandName: 'Carrier', type: 'ceiling', sku: 'X60', btu: 60000, price: 64200, install: null, qty: 1,
+      addons: [{ item: item('INS-PACKAGE-SURVEY'), qty: 1, flag: true }],
+    });
+    expect(L.map(l => [l.key, l.kind, l.group])).toEqual([
+      ['P-X60', 'product', 'product'],
+      ['S-INS-PACKAGE-SURVEY', 'survey', 'install'],
+    ]);
+    const t = quoteTotals(L, { tier: 'core', km: 7, fee: 0 } as never);
+    expect(t.visit).toBe(0);
+    expect(t.totalEx).toBe(64200);
+  });
   it('a brand without prices (FUJIVA) gives no product line; zero-quantity add-ons are skipped', () => {
     const L = productLines({ brandName: 'FUJIVA', type: 'wall', sku: 'X', btu: 9000, price: null, install: null, qty: 1, addons: [{ item: item('DISPOSE'), qty: 0 }] });
     expect(L).toEqual([]);
