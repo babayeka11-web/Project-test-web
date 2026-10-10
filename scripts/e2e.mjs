@@ -115,6 +115,22 @@ await step('contact: validation + hand-off', async page => {
   return `errors on empty submit: ${errs}; hand-off shown`;
 });
 
+await step('knowledge: BTU calculator → products link keeps matching sizes', async page => {
+  await page.goto(`${BASE}/knowledge/`, { waitUntil: 'networkidle' });
+  await page.getByLabel('กว้าง (ม.)').fill('4');
+  await page.getByLabel('ยาว (ม.)').fill('5');
+  await page.waitForTimeout(400);
+  const link = page.getByRole('link', { name: /ดูแอร์ขนาดนี้/ }).first();
+  const href = await link.getAttribute('href');
+  if (!/btu=b\d/.test(href || '')) throw new Error(`no BTU band in the link (${href})`);
+  await link.click();
+  await page.waitForURL(/\/products\/\?/, { timeout: 20000 });
+  await page.waitForTimeout(600);
+  const m = (await page.locator('main').innerText()).match(/(\d+) ซีรีส์ · (\d+) รุ่น/);
+  if (!m || +m[2] === 0) throw new Error(`no models for ${href}`);
+  return `${href} → ${m[0]}`;
+});
+
 await step('phone: home renders without overflow', async page => {
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

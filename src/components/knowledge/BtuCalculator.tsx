@@ -108,17 +108,19 @@ export function BtuCalculator({ catalog }: BtuCalculatorProps) {
     const area = w * d;
     const sizes = (catalog[type] ?? []).map(s => s.btu);
     const rec = recommendUnits(total, area, type, sizes.length ? sizes : undefined);
-    const band = BTU_BANDS.find(b => rec.per >= b.min && rec.per <= b.max);
+    // catalog-sizes files each machine under the nearest standard size within ±12%, so a 12,000 class includes
+    // machines rated 12,283 — link every price-list band that range touches (b1,b2) so none of them is filtered out
+    const bands = BTU_BANDS.filter(b => b.max >= rec.per * 0.88 && b.min <= rec.per * 1.12).map(b => b.id);
     const from = catalog[type]?.find(s => s.btu === rec.per)?.from ?? null;
     const raw = items.reduce((a, b) => a + b.btu, 0);
     const rows = items.filter(i => i.k === 'base' || Math.abs(i.btu) >= 50).map(i => ({ ...i, btu: round100(i.btu) }));
     const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.btu)));
-    return { total, area, rec, band, from, floored: raw < 5950, rows, maxAbs, orient: input.orient };
+    return { total, area, rec, bands, from, floored: raw < 5950, rows, maxAbs, orient: input.orient };
   }, [dimError, equipError, w, d, h, people, equip, sun, roof, room, catalog, type]);
 
   const sunNote = `${ORIENT.find(o => o.id === defaultOrient({ sun, closed: room.closed }))?.long ?? ''} · ${GLASS[sun].th}`;
   const dirty = Object.keys(edit).length > 0 || typeSel !== null;
-  const productsHref = calc?.band ? `/products/?btu=${calc.band.id}&type=${type}` : '/products/';
+  const productsHref = calc?.bands.length ? `/products/?btu=${calc.bands.join(',')}&type=${type}` : '/products/';
   const sunLabelId = `${uid}-sun`;
   const peopleHintId = `${uid}-people`;
 
