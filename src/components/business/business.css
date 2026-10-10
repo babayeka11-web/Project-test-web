@@ -1,0 +1,40 @@
+/* /business/ — 12-month plan. Nodes pop in once (and again when the visits per year change); off for reduced motion. */
+@keyframes yp-pop {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes yp-rule {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.yp-cell { position: relative; }
+/* the year line runs through every month, behind the nodes */
+.yp-cell::before {
+  content: '';
+  position: absolute;
+  top: 1.25rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-line-strong);
+  opacity: 0.45;
+  transform-origin: left center;
+  animation: yp-rule 0.9s var(--ease-air) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.yp-cell:first-child::before { left: 50%; }
+.yp-cell:last-child::before { right: 50%; }
+@media (max-width: 767px) {
+  .yp-cell:nth-child(6n + 1)::before { left: 50%; }
+  .yp-cell:nth-child(6n)::before { right: 50%; }
+  .yp-cell:nth-child(12)::before { right: 50%; }
+}
+.yp-node {
+  animation: yp-pop 0.5s var(--ease-air) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 160ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yp-cell::before, .yp-node { animation: none; }
+}

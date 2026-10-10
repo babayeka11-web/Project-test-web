@@ -1,0 +1,4 @@
+/* Gentle airflow on the type illustrations: dashes drift away from the unit. Off for reduced motion. */
+@keyframes type-art-flow { to { stroke-dashoffset: -22; } }
+.type-art-air { animation: type-art-flow 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .type-art-air { animation: none; } }
