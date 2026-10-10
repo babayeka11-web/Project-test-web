@@ -8,6 +8,7 @@ import { AccordionItem, Badge, Button, Card, Checkbox, Field, Fieldset, Notice, 
 import { INSTALL_WARRANTY, INCLUDED_PIPE_M, breakdown, optionNote, packageParts, productLines, type AddonOption, type InstallItem } from '@/lib/domain/install';
 import { baht, thousands, VAT } from '@/lib/domain/format';
 import { TYPE_BY_ID, type AcTypeId } from '@/lib/domain/types';
+import { plain } from '@/lib/plain';
 import type { ProductPageOptions } from './spec';
 
 export type ConfiguratorProps = {
@@ -135,14 +136,14 @@ export function Configurator({ brandName, type, sku, btu, price, options }: Conf
                       <p className="font-semibold text-ink">รวมในแพ็กเกจ</p>
                       <ul className="mt-1.5 list-disc space-y-1 pl-5">
                         {packageParts(install.item).map(p => (
-                          <li key={p}>{p}</li>
+                          <li key={p}>{plain(p)}</li>
                         ))}
                       </ul>
                     </div>
                     {install.item.exc && (
                       <p>
                         <span className="font-semibold text-ink">ไม่รวม </span>
-                        {install.item.exc.replace(/^ไม่รวม/, '')}
+                        {plain(install.item.exc.replace(/^ไม่รวม/, ''))}
                       </p>
                     )}
                     <div>
@@ -151,7 +152,7 @@ export function Configurator({ brandName, type, sku, btu, price, options }: Conf
                         <li>{INSTALL_WARRANTY.boughtHere}</li>
                         <li>{INSTALL_WARRANTY.ownUnit}</li>
                       </ul>
-                      {install.item.warranty && <p className="mt-1.5 text-ink-3">เงื่อนไขในใบเสนอราคา: {install.item.warranty}</p>}
+                      {install.item.warranty && <p className="mt-1.5 text-ink-3">เงื่อนไขในใบเสนอราคา: {plain(install.item.warranty)}</p>}
                     </div>
                   </div>
                 </AccordionItem>

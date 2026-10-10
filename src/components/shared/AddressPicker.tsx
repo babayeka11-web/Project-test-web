@@ -139,6 +139,10 @@ export function AddressPicker({
   };
 
   const expanded = open && hits.length > 0;
+  // ↑/↓ move the highlight: keep that option in view inside the scrolling list, so Enter never picks an unseen area
+  useEffect(() => {
+    if (expanded) document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: 'nearest' });
+  }, [expanded, active, listId]);
   return (
     <div className={className}>
       <Field label={label} hint={hint} id={inputId}>

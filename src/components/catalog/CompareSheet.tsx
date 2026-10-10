@@ -18,6 +18,7 @@ export function CompareSheet({
   pool,
   onRemove,
   onClear,
+  returnFocus,
 }: {
   open: boolean;
   onClose: () => void;
@@ -25,6 +26,8 @@ export function CompareSheet({
   pool: string[];
   onRemove: (item: CompareItem) => void;
   onClear: () => void;
+  /** where focus goes when the sheet closes (see Sheet) */
+  returnFocus?: () => HTMLElement | null;
 }) {
   const [onlyDiff, setOnlyDiff] = useState(false);
 
@@ -55,6 +58,7 @@ export function CompareSheet({
     <Sheet
       open={open}
       onClose={onClose}
+      returnFocus={returnFocus}
       side="center"
       size="lg"
       className="sm:w-[min(64rem,calc(100vw-3rem))]!"

@@ -8,6 +8,7 @@ import { NOTES } from '@/lib/domain/constants';
 import { baht } from '@/lib/domain/format';
 import { dateTh, RUSH_FEE_EX } from '@/lib/domain/queue';
 import { TIER_TH, type Zone } from '@/lib/domain/travel';
+import { FORM_ENDPOINT } from '@/lib/request';
 
 function Row({ label, sub, children, tone }: { label: ReactNode; sub?: ReactNode; children: ReactNode; tone?: 'warn' }) {
   return (
@@ -167,7 +168,10 @@ export function BookingSummary({
         )}
       </div>
       <p id="qb-book-note" className="mt-3 text-meta text-ink-3">
-        ยังไม่ส่งคำขอ ขั้นต่อไปกรอกชื่อและเบอร์ที่หน้าใบเสนอราคา แล้วทีมโทรยืนยันคิว
+        {/* no form endpoint yet: nothing reaches the team until the customer sends the summary themselves */}
+        {FORM_ENDPOINT
+          ? 'ยังไม่ส่งคำขอ ขั้นต่อไปกรอกชื่อและเบอร์ที่หน้าใบเสนอราคา แล้วทีมโทรยืนยันคิว'
+          : 'ยังไม่ส่งคำขอ ขั้นต่อไปกรอกชื่อและเบอร์ที่หน้าใบเสนอราคา แล้วส่งสรุปให้ทีมทาง LINE หรือโทรแจ้ง'}
       </p>
     </Card>
   );

@@ -1,30 +1,9 @@
 // Copy and small helpers of the installation page (client-safe, no Pricebook). Text from the Pricebook sheets is kept as the
-// company wrote it; `plain()` only swaps a few English sheet terms for the words customers use.
+// company wrote it; `plain()` (lib/plain.ts) only swaps a few sheet terms for the words customers use.
 import type { IconName } from '@/components/ui';
+import { plain } from '@/lib/plain';
 
-const WORDS: readonly (readonly [string, string])[] = [
-  ['วัสดุ Standard ครบ 4 ม.', 'วัสดุเหมือนแพ็กเกจมาตรฐานครบ 4 ม.'],
-  ['เพิ่ม Support/Anti-vibration', 'เพิ่มขาแขวนและกันสั่น'],
-  ['Breaker Nano/Approved ตาม Load', 'เบรกเกอร์ NANO ตามกระแสของเครื่อง'],
-  ['Support/Anti-vibration', 'ขาแขวนและกันสั่นเพิ่ม'],
-  ['บันทึกค่า Commissioning', 'บันทึกค่าเดินเครื่องทดสอบ'],
-  ['Nitrogen Leak Test', 'อัดไนโตรเจนตรวจรั่ว'],
-  ['Vacuum Hold', 'Vacuum ค้างความดัน'],
-  ['ตรวจ Torque/Flare', 'ตรวจแรงบิดขันแฟลร์'],
-  ['ตรวจรอยต่อ/Drain/Current/Voltage', 'ตรวจรอยต่อ น้ำทิ้ง กระแส แรงดันไฟ'],
-  ['ตามจุดเข้าถึง', 'ตามจุดที่เข้าถึงได้'],
-  ['Test Run', 'เดินเครื่องทดสอบ'],
-  ['ตามระบบ', 'ตามระบบของเครื่อง'],
-  ['ตาม QTN', 'ตามใบเสนอราคา'],
-  ['เมนไฟจาก DB', 'เมนไฟจากตู้ไฟ (DB)'],
-  ['Permit พิเศษ', 'ใบอนุญาตเข้าพื้นที่พิเศษ'],
-  ['Access/ระยะ/ระบบเดิม/ไฟ/น้ำหนักไม่ชัด', 'ทางเข้าทำงาน ระยะท่อ ระบบเดิม ไฟ หรือน้ำหนักยังไม่ชัด'],
-];
-
-/** Sheet wording → words customers use (only the listed English terms are replaced). */
-export function plain(text: string): string {
-  return WORDS.reduce((s, [from, to]) => s.split(from).join(to), text);
-}
+export { plain };
 
 /** "A; B, C และ D" → clauses; keeps the sheet's order. */
 export const clauses = (text: string | null | undefined): string[] =>

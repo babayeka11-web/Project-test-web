@@ -208,8 +208,14 @@ export function MethodStep({
 
 /* ---------- step 3 · where and when ---------- */
 
-const FIT_TH = (f: CleaningQuote['when']['fit']): string =>
-  f.kind === 'half' ? 'ใช้เวลาไม่เกินครึ่งวัน เลือกช่วงเช้าหรือบ่ายได้' : f.kind === 'day' ? 'ใช้เวลาประมาณ 1 วันทำการ' : `ใช้เวลาประมาณ ${f.days} วันทำการ`;
+const FIT_TH = (f: CleaningQuote['when']['fit'], slots: readonly SlotId[]): string =>
+  f.kind === 'half'
+    ? slots.includes('am') && slots.includes('pm')
+      ? 'ใช้เวลาไม่เกินครึ่งวัน เลือกช่วงเช้าหรือบ่ายได้'
+      : 'ใช้เวลาไม่เกินครึ่งวัน'
+    : f.kind === 'day'
+      ? 'ใช้เวลาประมาณ 1 วันทำการ'
+      : `ใช้เวลาประมาณ ${f.days} วันทำการ`;
 
 export function WhenStep({
   now,
@@ -265,7 +271,9 @@ export function WhenStep({
             )}
             {date && when.late && (
               <Notice tone="warn" size="sm">
-                งานนี้ใช้เวลามากกว่าเวลาทำการที่เหลือของวันนี้ ส่วนที่เลย {COMPANY.open.to} น. เป็นงานนอกเวลา มีค่าใช้จ่ายเพิ่มเติม
+                {when.slots.length === 0
+                  ? `วันนี้ไม่มีช่วงเวลาทำการเหลือพอสำหรับงานนี้ ส่วนที่เลย ${COMPANY.open.to} น. เป็นงานนอกเวลา มีค่าใช้จ่ายเพิ่มเติม เลือกวันอื่น หรือให้ทีมเสนอเวลา`
+                  : `งานนี้ใช้เวลามากกว่าเวลาทำการที่เหลือของวันนี้ ส่วนที่เลย ${COMPANY.open.to} น. เป็นงานนอกเวลา มีค่าใช้จ่ายเพิ่มเติม`}
               </Notice>
             )}
           </div>
@@ -297,7 +305,7 @@ export function WhenStep({
                 <Icon name="clock" size={20} className="mt-[0.2em] shrink-0 text-brand" />
                 <span>
                   เวลาหน้างานโดยประมาณ {timeTh(when.time)}
-                  <span className="font-normal text-ink-2"> · {FIT_TH(when.fit)}</span>
+                  <span className="font-normal text-ink-2"> · {FIT_TH(when.fit, when.slots)}</span>
                 </span>
               </p>
               <p className="mt-1 pl-7 text-meta text-ink-3">{TIME_NOTE}</p>

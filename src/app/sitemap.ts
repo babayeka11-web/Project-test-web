@@ -1,4 +1,4 @@
-// /sitemap.xml — every static page: the main routes, each guide, each series and each model page.
+// /sitemap.xml — every indexable static page: the main routes, each guide, each series and each model page.
 import type { MetadataRoute } from 'next';
 import { allModelParams } from '@/components/catalog/catalog-data';
 import { GUIDES } from '@/components/knowledge/guides';
@@ -19,7 +19,7 @@ const MAIN: readonly [path: string, priority: number][] = [
   ['/knowledge/', 0.6],
   ['/faq/', 0.6],
   ['/contact/', 0.7],
-  ['/quote/', 0.5],
+  // /quote/ is left out: the per-visitor quote page is noindex
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

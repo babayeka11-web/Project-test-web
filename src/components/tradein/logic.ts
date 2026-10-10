@@ -250,7 +250,9 @@ export function tradeIn(input: TradeInput, data: TradeInData): TradeInResult {
   if (setEx != null && known >= setEx * 0.5) why.push('ค่าซ่อมที่รู้ราคาแล้วเกินครึ่งหนึ่งของเครื่องใหม่พร้อมติดตั้ง (หลักคิดเบื้องต้น)');
   if (setEx != null && A.y >= 7 && known * A.y >= setEx) why.push(`อายุ × ค่าซ่อม (${A.y} ปี × ${baht(known)}) เท่ากับหรือเกินราคาเครื่องใหม่พร้อมติดตั้ง`);
   if (A.y < 5 && I.id !== 'reno') why.push('เครื่องอายุไม่ถึง 5 ปี ตรวจใบรับประกันของผู้ผลิตก่อน อะไหล่บางชิ้นอาจยังอยู่ในประกัน');
-  if (!oldInv && save > 0) why.push(`เครื่องเดิมเป็น Fixed speed ค่าไฟโดยประมาณสูงกว่าเครื่อง Inverter ใหม่ราว ${baht(Math.round(save / 100) * 100)} ต่อปีต่อเครื่อง`);
+  // the gap of the two figures as shown (each rounded to 100), so the sentence matches the numbers on screen
+  const shownGap = Math.round(oldYear / 100) * 100 - Math.round(newYear / 100) * 100;
+  if (!oldInv && save > 0 && shownGap > 0) why.push(`เครื่องเดิมเป็น Fixed speed ค่าไฟโดยประมาณสูงกว่าเครื่อง Inverter ใหม่ราว ${baht(shownGap)} ต่อปีต่อเครื่อง`);
 
   let verdict: Verdict;
   if (I.id === 'reno') verdict = A.y >= 10 ? 'replace' : A.y >= 7 ? 'compare' : 'keep';

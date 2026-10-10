@@ -22,6 +22,9 @@ export type SheetProps = {
   headerStart?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /** Where focus goes when the sheet closes; return null for the default (the element that opened it, or #main when
+   *  that element is gone — e.g. a menu link that navigated, or a "clear" that removed its own opener). */
+  returnFocus?: () => HTMLElement | null;
 };
 
 const WIDTH = { sm: 'sm:w-[24rem]', md: 'sm:w-[28rem]', lg: 'sm:w-[36rem]' } as const;
@@ -54,9 +57,12 @@ export function Sheet({
   headerStart,
   children,
   className,
+  returnFocus,
 }: SheetProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const returnTo = useRef(returnFocus);
+  returnTo.current = returnFocus;
   const pressStartedOnBackdrop = useRef(false);
   const [state, setState] = useState<'closed' | 'open' | 'closing'>('closed');
   const uid = useId();
@@ -81,7 +87,8 @@ export function Sheet({
           dialog.close();
           unlockScroll();
           setState('closed');
-          opener.current?.focus?.({ preventScroll: true });
+          const back = opener.current?.isConnected ? opener.current : document.getElementById('main');
+          (returnTo.current?.() ?? back)?.focus?.({ preventScroll: true });
         },
         reduce ? 0 : EXIT_MS,
       );

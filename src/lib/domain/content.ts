@@ -35,8 +35,8 @@ export function serviceCards(from?: ServiceFrom | null, repairCount?: number): S
     { id: 'clean-b2b', th: 'สัญญาล้างรายปี', sub: 'องค์กร · อาคาร · โรงงาน', from: 'อัตราตามจำนวนเครื่อง', time: 'วางแผนรอบทั้งปี', href: '/business/', key: true },
     { id: 'clean', th: 'ล้างแอร์', sub: 'ล้างปกติ C1 / ล้างใหญ่ C2', from: from ? `เริ่ม ${baht(from.clean)} / เครื่อง` : '—', time: 'ตามจำนวนเครื่อง', href: '/cleaning/' },
     { id: 'install', th: 'ติดตั้งแอร์', sub: 'มาตรฐาน · พรีเมียม', from: from ? `เริ่ม ${baht(from.install)} / เครื่อง` : '—', time: 'รวมท่อ 4 เมตรแรก', href: '/installation/' },
-    { id: 'repair', th: 'ตรวจเช็ก / ซ่อม', sub: `${repairCount ?? 86} รายการ พร้อมราคาและประกัน`, from: from ? `ค่าตรวจเริ่ม ${baht(from.repair)}` : '—', time: 'แจ้งราคาก่อนซ่อม', href: '/repair/' },
-    { id: 'move', th: 'รื้อ ย้าย ติดตั้งใหม่', sub: 'เก็บน้ำยา ถอด ย้าย ติดตั้ง', from: 'ประเมินหน้างาน', time: 'ตามระยะท่อจริง', href: '/prices/' },
+    { id: 'repair', th: 'ตรวจเช็ก / ซ่อม', sub: `${repairCount ?? 86} รายการ ส่วนใหญ่มีราคามาตรฐาน`, from: from ? `ค่าตรวจเริ่ม ${baht(from.repair)}` : '—', time: 'แจ้งราคาก่อนซ่อม', href: '/repair/' },
+    { id: 'move', th: 'รื้อ ย้าย ติดตั้งใหม่', sub: 'เก็บน้ำยา ถอด ย้าย ติดตั้ง', from: 'ราคาตามขนาดเครื่อง', time: 'ตามระยะท่อจริง', href: '/installation/' },
     { id: 'project', th: 'งานโครงการ · VRV / VRF', sub: 'VRV · VRF · Package · AHU · Duct', from: 'ติดต่อทีมโครงการ', time: 'สำรวจ + ออกแบบ + BOQ', href: '/contact/', contact: true },
   ];
 }

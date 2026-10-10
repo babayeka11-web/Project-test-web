@@ -135,9 +135,33 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
       }),
     [compare, bySlug, slugsOf],
   );
-  const removeCompare = (i: CompareItem) => {
-    setCompare(c => c.filter(x => !(x.slug === i.m.slug && x.sku === i.k.sku)));
+  // clearing the compare list removes the tray (and the button that had focus): park focus on the result count
+  // instead of letting it fall to <body>, which sent the next Tab thousands of pixels down the list
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  const focusStatus = () => requestAnimationFrame(() => statusRef.current?.focus({ preventScroll: true }));
+  const clearCompare = () => {
+    setCompare([]);
+    focusStatus();
   };
+  const removeCompare = (i: CompareItem) => {
+    const left = compare.filter(x => !(x.slug === i.m.slug && x.sku === i.k.sku));
+    setCompare(left);
+    if (!left.length) focusStatus();
+  };
+  // the fixed compare tray: its height joins the page's scroll padding so focused fields never sit underneath it
+  const trayRef = useRef<HTMLElement>(null);
+  const hasTray = compare.length > 0;
+  useEffect(() => {
+    const el = trayRef.current;
+    const root = document.documentElement;
+    if (!hasTray || !el) return;
+    const ro = new ResizeObserver(() => root.style.setProperty('--tray-h', `${el.offsetHeight + 12}px`));
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty('--tray-h');
+    };
+  }, [hasTray]);
   useEffect(() => {
     if (compareOpen && compareItems.length === 0) setCompareOpen(false);
   }, [compareOpen, compareItems.length]);
@@ -218,7 +242,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <p role="status" aria-live="polite" className="text-small text-ink-2">
+            <p ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="text-small text-ink-2">
               <strong className="font-semibold text-ink">
                 {thousands(result.list.length)} ซีรีส์ · {thousands(result.skuTotal)} รุ่น
               </strong>
@@ -338,6 +362,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
       {compare.length > 0 && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--mobilebar-h)+env(safe-area-inset-bottom,0px))] z-30 px-gutter pb-3">
           <section
+            ref={trayRef}
             aria-label="รายการที่เลือกเทียบ"
             className="glass pointer-events-auto mx-auto flex max-w-page flex-col gap-3 rounded-panel border border-line p-3 shadow-pop sm:flex-row sm:items-center sm:gap-4 sm:px-4"
           >
@@ -357,7 +382,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
               </ul>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button variant="quiet" onClick={() => setCompare([])}>
+              <Button variant="quiet" onClick={clearCompare}>
                 ล้าง
               </Button>
               <Button variant="secondary" icon="sliders" disabled={compareItems.length < 2} onClick={() => setCompareOpen(true)}>
@@ -378,6 +403,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
           setCompare([]);
           setCompareOpen(false);
         }}
+        returnFocus={() => (compare.length ? null : statusRef.current)}
       />
     </div>
   );

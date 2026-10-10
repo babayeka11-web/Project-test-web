@@ -13,7 +13,7 @@ import { TIME_NOTE, timeTh } from '@/lib/domain/content';
 import { NOTES } from '@/lib/domain/constants';
 import { bkkNow, dateHint, dateTh, judge, SLOTS, visitLinesOf, type SlotId } from '@/lib/domain/queue';
 import { baht } from '@/lib/domain/format';
-import { buildSummary, makeRef, PDPA_NOTE, submitRequest, type RequestField, type RequestKind, type SendResult } from '@/lib/request';
+import { buildSummary, FORM_ENDPOINT, makeRef, PDPA_NOTE, submitRequest, type RequestField, type RequestKind, type SendResult } from '@/lib/request';
 import { areaText, hasBookableWork, quoteTextLines } from './quote-model';
 import { useHydrated } from './use-hydrated';
 
@@ -75,7 +75,11 @@ export function RequestSection() {
       className="print:hidden"
       eyebrow="ส่งคำขอ"
       title="ส่งให้ทีมยืนยันราคาและคิว"
-      lead="กรอกแค่ชื่อกับเบอร์โทรก็ส่งได้ ข้อมูลอื่นช่วยให้ทีมเตรียมงานและตอบกลับได้ตรงขึ้น"
+      lead={
+        FORM_ENDPOINT
+          ? 'กรอกแค่ชื่อกับเบอร์โทรก็ส่งได้ ข้อมูลอื่นช่วยให้ทีมเตรียมงานและตอบกลับได้ตรงขึ้น'
+          : 'กรอกแค่ชื่อกับเบอร์โทร แล้วส่งสรุปให้ทีมทาง LINE หรือโทรแจ้ง ข้อมูลอื่นช่วยให้ทีมเตรียมงานและตอบกลับได้ตรงขึ้น'
+      }
     >
       {hydrated ? (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
@@ -95,7 +99,7 @@ export function RequestSection() {
 function HowItWorks() {
   return (
     <Card tone="surface" padding="lg" className="flex flex-col gap-5">
-      <h3 className="text-h3">หลังส่งคำขอ</h3>
+      <h3 className="text-h3">{FORM_ENDPOINT ? 'หลังส่งคำขอ' : 'เมื่อทีมได้รับสรุปแล้ว'}</h3>
       <ol className="flex flex-col gap-4">
         {['ทีมตรวจรายการและพื้นที่หน้างาน', 'โทรหรือทัก LINE ยืนยันราคา คิว และเวลาเข้างานในเวลาทำการ', 'ส่งใบเสนอราคาให้ยืนยัน แล้วนัดเข้างาน'].map((t, i) => (
           <li key={t} className="flex gap-3">
@@ -311,7 +315,7 @@ function RequestForm() {
             <Field label="ช่วงเวลาที่สะดวก" optional id="quote-slot">
               <Select
                 name="slot"
-                placeholder={pref.date && J.slots.length ? 'ให้ทีมเสนอเวลา' : 'เลือกวันก่อน'}
+                placeholder={pref.date ? 'ให้ทีมเสนอเวลา' : 'เลือกวันก่อน'}
                 disabled={!pref.date || J.slots.length === 0}
                 value={slotValue}
                 onChange={e => cart.setPref(pref.date, e.target.value ? SLOTS[e.target.value as SlotId].th : '')}
@@ -340,7 +344,10 @@ function RequestForm() {
           </Field>
           {needsArea && (
             <Notice tone="info" size="sm">
-              ยังไม่ได้เลือกพื้นที่ ค่าเดินทางยังไม่รวมในยอดนี้ ทีมแจ้งพร้อมราคา
+              {/* with no area a cleaning below the minimum already carries the core-area ฿300 trip — say what the total holds */}
+              {totals.travel > 0
+                ? `ยังไม่ได้เลือกพื้นที่ ยอดนี้คิดค่าเดินทางแบบพื้นที่หลัก ${baht(totals.travel)} ถ้าหน้างานอยู่นอกพื้นที่หลัก ค่าเดินทางเปลี่ยนตามระยะ`
+                : 'ยังไม่ได้เลือกพื้นที่ ค่าเดินทางยังไม่รวมในยอดนี้ ทีมแจ้งพร้อมราคา'}
             </Notice>
           )}
           <Fieldset legend="สภาพหน้างาน" hint="เลือกที่ตรงกับหน้างาน ทีมจะเตรียมอุปกรณ์และแจ้งค่าใช้จ่ายเพิ่ม (ถ้ามี) ก่อนเข้างาน">

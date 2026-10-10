@@ -145,7 +145,10 @@ describe('parity · Pricebook load', () => {
   it('headline prices', () => {
     expect(cleanFrom()).toBe(FX.headline.cleanFrom);
     const mine = Object.fromEntries(getServices().map(s => [s.id, s.from]));
-    for (const s of FX.headline.services as { id: string; from: string }[]) expect(mine[s.id]).toBe(s.from);
+    // deliberate difference: the reference card says relocation is 'ประเมินหน้างาน', but /installation/ lists fixed
+    // relocation prices by size, so this site's card says 'ราคาตามขนาดเครื่อง'
+    const OURS: Record<string, string> = { move: 'ราคาตามขนาดเครื่อง' };
+    for (const s of FX.headline.services as { id: string; from: string }[]) expect(mine[s.id]).toBe(OURS[s.id] ?? s.from);
   });
 });
 

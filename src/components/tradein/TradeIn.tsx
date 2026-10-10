@@ -32,6 +32,8 @@ import {
   type TradeType,
 } from './logic';
 
+const r100 = (n: number) => Math.round(n / 100) * 100;
+
 const rangeText = (lo: number, hi: number) => `${baht(lo)}–${baht(hi).replace('฿', '')}`;
 
 function ChipGroup<V extends string>({ label, value, options, onChange }: { label: string; value: V; options: readonly { id: V; th: string }[]; onChange: (v: V) => void }) {
@@ -334,19 +336,20 @@ export function TradeIn({ data }: { data: TradeInData }) {
                   เครื่องเดิม ({r.energy.oldInv ? 'Inverter' : 'Fixed speed'} อายุ {r.age.th})
                 </dt>
                 <dd>
-                  <Price amount={Math.round(r.energy.old / 100) * 100} vat={false} size="lg" unit="/ ปี / เครื่อง" />
+                  <Price amount={r100(r.energy.old)} vat={false} size="lg" unit="/ ปี / เครื่อง" />
                 </dd>
               </div>
               <div className="rounded-control bg-sky-soft p-4">
                 <dt className="text-small text-ink-2">เครื่องใหม่ Inverter ขนาดเดียวกัน</dt>
                 <dd>
-                  <Price amount={Math.round(r.energy.now / 100) * 100} vat={false} size="lg" tone="brand" unit="/ ปี / เครื่อง" />
+                  <Price amount={r100(r.energy.now)} vat={false} size="lg" tone="brand" unit="/ ปี / เครื่อง" />
                 </dd>
               </div>
             </dl>
-            {r.energy.save > 0 && (
+            {r.energy.save > 0 && r100(r.energy.old) > r100(r.energy.now) && (
               <p className="text-small text-ink-2">
-                ต่างกันราว {baht(Math.round((r.energy.save * q) / 100) * 100)} ต่อปี{q > 1 ? ` (${q} เครื่อง)` : ''} ตามเงื่อนไขที่สมมติด้านล่าง
+                {/* the difference of the two rounded figures above, so the numbers on screen add up */}
+                ต่างกันราว {baht((r100(r.energy.old) - r100(r.energy.now)) * q)} ต่อปี{q > 1 ? ` (${q} เครื่อง)` : ''} ตามเงื่อนไขที่สมมติด้านล่าง
               </p>
             )}
             <p className="text-meta text-ink-3">

@@ -45,3 +45,13 @@ describe('queue rules (injected clock)', () => {
     expect(dateHint('2026-10-12', false, now)).toEqual({ text: 'จองปกติ · ทีมยืนยันคิวและเวลาเข้างาน', warn: false });
   });
 });
+
+describe('same-day slots', () => {
+  const sat = '2026-10-10';
+  it('after noon only the afternoon is left; after closing no slot of today is offered', () => {
+    expect(judge(sat, [], 'C1', { date: sat, min: 13 * 60 }).slots).toEqual(['pm']);
+    const late = judge(sat, [], 'C1', { date: sat, min: 21 * 60 + 8 });
+    expect(late.slots).toEqual([]);
+    expect(late.late).toBe(true);
+  });
+});

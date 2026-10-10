@@ -2,6 +2,7 @@
 // Pure TS, client-safe (no Pricebook import): the server page passes getRepairItems() through toListRows().
 
 import type { RepairRow } from './diag';
+import { plain } from '@/lib/plain';
 
 /** One Pricebook repair line as the client needs it (small, serialisable). */
 export type ListRow = {
@@ -48,9 +49,9 @@ export function toListRows(items: readonly Source[]): ListRow[] {
       name: r.name,
       unit: r.unit,
       ex: extra || travel ? null : r.ex,
-      warranty: r.warranty,
-      inc: r.inc,
-      exc: r.exc,
+      warranty: r.warranty && plain(r.warranty),
+      inc: r.inc && plain(r.inc),
+      exc: r.exc && plain(r.exc),
       extra,
       travel,
     };

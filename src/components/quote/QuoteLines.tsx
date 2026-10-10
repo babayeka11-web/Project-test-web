@@ -17,6 +17,10 @@ const strip = (l: CartLine): CartLineInput => {
 
 const rmId = (id: string) => `quote-rm-${id}`;
 
+// Undo stays until closed: the toast region is last in the page, so a keyboard user needs far more than a few seconds
+// to Tab to "เลิกทำ". One id, so a newer removal replaces the older undo instead of stacking.
+const UNDO = { id: 'quote-undo', duration: 0 } as const;
+
 export function QuoteLines({ titleId }: { titleId: string }) {
   const { lines, totals } = useCart();
   const groups = useMemo(() => groupLines(lines), [lines]);
@@ -40,7 +44,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
     const prev = cart.get().lines.map(strip);
     setConfirming(false);
     cart.clear();
-    toast('ล้างรายการในใบเสนอราคาแล้ว', { action: { label: 'เลิกทำ', onClick: () => cart.addMany(prev) } });
+    toast('ล้างรายการในใบเสนอราคาแล้ว', { ...UNDO, action: { label: 'เลิกทำ', onClick: () => cart.addMany(prev) } });
   };
 
   const removeLine = (l: CartLine) => {
@@ -48,7 +52,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
     const removable = (x: CartLine | undefined) => !!x && x.group !== 'rush';
     const next = flat.slice(i + 1).find(removable) ?? flat.slice(0, i).reverse().find(removable);
     cart.remove(l.id);
-    toast(`ลบ “${l.name}” แล้ว`, { action: { label: 'เลิกทำ', onClick: () => cart.add(strip(l)) } });
+    toast(`ลบ “${l.name}” แล้ว`, { ...UNDO, action: { label: 'เลิกทำ', onClick: () => cart.add(strip(l)) } });
     requestAnimationFrame(() => {
       const el = next ? document.getElementById(rmId(next.id)) : null;
       if (el) el.focus();

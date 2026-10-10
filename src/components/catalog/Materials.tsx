@@ -3,6 +3,7 @@
 import { Accordion, Notice, Price, TableShell } from '@/components/ui';
 import { MAT_ROWS, type InstallOption, type MaterialColumn, type PipeBundle } from '@/lib/domain/install';
 import { baht } from '@/lib/domain/format';
+import { plain } from '@/lib/plain';
 
 export function MaterialsTable({ columns, install }: { columns: MaterialColumn[]; install: InstallOption[] }) {
   const rows = MAT_ROWS.filter(r => columns.some(c => (c.cell[r.id] ?? []).length > 0));
@@ -35,7 +36,7 @@ export function MaterialsTable({ columns, install }: { columns: MaterialColumn[]
                     {cell.length ? (
                       <ul className="space-y-1">
                         {cell.map(x => (
-                          <li key={x}>{x}</li>
+                          <li key={x}>{plain(x)}</li>
                         ))}
                       </ul>
                     ) : (
@@ -67,7 +68,7 @@ export function PipeBundleBlock({ bundle }: { bundle: PipeBundle }) {
           ),
           content: (
             <div className="flex flex-col gap-4 text-small">
-              {item.inc && <p>{item.inc}</p>}
+              {item.inc && <p>{plain(item.inc)}</p>}
               {parts && (
                 <TableShell label="วัสดุใน 1 เมตรของชุดเหมา เทียบกับซื้อแยกชิ้น">
                   <table className="ui-table" style={{ minWidth: '28rem' }}>
@@ -113,7 +114,7 @@ export function PipeBundleBlock({ bundle }: { bundle: PipeBundle }) {
                 </TableShell>
               )}
               <Notice tone="info" size="sm">
-                ราคาก่อน VAT จาก Pricebook 2569 ของบริษัท วัสดุคิดตามราคาจริงไม่ปัด ทีมวัดระยะจริงก่อนติดตั้ง {item.exc ?? ''}
+                ราคาก่อน VAT จาก Pricebook 2569 ของบริษัท วัสดุคิดตามราคาจริงไม่ปัด ทีมวัดระยะจริงก่อนติดตั้ง {plain(item.exc ?? '')}
               </Notice>
             </div>
           ),

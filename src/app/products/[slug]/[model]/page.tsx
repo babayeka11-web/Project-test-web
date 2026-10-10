@@ -98,6 +98,7 @@ export default async function ModelPage({ params }: Props) {
                     <li key={s.sku}>
                       <Link
                         href={modelPath(m.slug, slugs[i])}
+                        prefetch={false}
                         aria-current={current ? 'page' : undefined}
                         aria-label={`${btuFmt(s.btu)} รุ่น ${s.sku} ${baht(s.price)} ${EX_TH}${current ? ' (รุ่นนี้)' : ''}`}
                         className={
@@ -183,6 +184,7 @@ export default async function ModelPage({ params }: Props) {
                 <li key={s.sku} className="flex">
                   <Link
                     href={modelPath(m.slug, slugs[i])}
+                    prefetch={false}
                     className="lift flex w-full min-w-0 items-center justify-between gap-3 rounded-card border border-line bg-surface p-5 text-ink no-underline shadow-card hover:text-brand"
                   >
                     <span className="min-w-0">

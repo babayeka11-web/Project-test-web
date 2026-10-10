@@ -104,7 +104,8 @@ export function InstallPriceTool({ rows, includes }: { rows: SizeRow[]; includes
                 </option>
               ))}
             </Select>
-            <p className="text-meta text-ink-3">ดูตัวเลข BTU จากป้ายหรือกล่องเครื่อง เลือกช่วงที่ตัวเลขอยู่ในนั้น</p>
+            {/* Pricebook bands leave gaps (12,000 → 13,000); a unit between two bands is priced in the higher one (btu ≤ hi) */}
+            <p className="text-meta text-ink-3">ดูตัวเลข BTU จากป้ายหรือกล่องเครื่อง ถ้าอยู่ระหว่างสองช่วง (เช่น 12,300) ให้เลือกช่วงที่สูงกว่า</p>
           </div>
           <div className="flex flex-col gap-2">
             <span id={`${uid}-pipe`} className="text-small font-semibold text-ink">

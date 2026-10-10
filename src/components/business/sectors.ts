@@ -63,7 +63,8 @@ export const SECTORS: readonly Sector[] = [
       ['มีค่าใช้จ่ายบวกหน้างานที่ไม่ได้ตกลงไว้', 'ราคามาตรฐานตาม Pricebook ก่อน VAT งานเพิ่มทุกรายการแจ้งให้อนุมัติก่อนทำ', 'pkg'],
       ['อยากให้ทำนอกเวลางานหรือวันอาทิตย์', 'จัดได้ตามที่ตกลงในสัญญา งานนอกเวลามีค่าใช้จ่ายเพิ่มเติม แจ้งในใบเสนอราคา', 'deal'],
     ],
-    sample: { label: 'สำนักงาน 1 ชั้น 30 เครื่อง', units: { wall: 12, cassette: 14, ceiling: 4 }, size: 1, pkg: 'Standard Care', visits: 3 },
+    // size 0 like the 'office-m' preset in the page header and calculator — same label, same price everywhere
+    sample: { label: 'สำนักงาน 1 ชั้น 30 เครื่อง', units: { wall: 12, cassette: 14, ceiling: 4 }, size: 0, pkg: 'Standard Care', visits: 3 },
     addOns: ['ooh', 'ctrl', 'ceilingOpen'],
     window: 'วันทำการ 08:30–17:30 น. หรือนอกเวลาตามที่ตกลง (มีค่าใช้จ่ายเพิ่มเติม)',
   },

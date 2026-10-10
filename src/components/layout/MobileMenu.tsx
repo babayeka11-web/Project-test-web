@@ -2,7 +2,7 @@
 // Full-height menu sheet for phones and tablets: every page, the booking action and how to reach the team.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { COMPANY } from '@/lib/domain/company';
 import { NAV, NAV_MORE } from '@/lib/site';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +16,18 @@ export function MobileMenu() {
   const open = useMenuOpen();
   const pathname = usePathname();
   const close = () => setMenuOpen(false);
+  // a link inside was followed: focus its target (#book …) or the main content, not the menu button left behind
+  const followed = useRef(false);
+  const follow = () => {
+    followed.current = true;
+    setMenuOpen(false);
+  };
+  const returnFocus = () => {
+    if (!followed.current) return null;
+    followed.current = false;
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    return (id && document.getElementById(id)) || document.getElementById('main');
+  };
 
   // Close when the route changes (a link inside was followed).
   useEffect(() => {
@@ -23,8 +35,8 @@ export function MobileMenu() {
   }, [pathname]);
 
   return (
-    <Sheet open={open} onClose={close} title="เมนู" side="right" size="sm">
-      <Button href="/cleaning/#book" fullWidth size="lg" icon="clean" onClick={close} className="mb-6">
+    <Sheet open={open} onClose={close} returnFocus={returnFocus} title="เมนู" side="right" size="sm">
+      <Button href="/cleaning/#book" fullWidth size="lg" icon="clean" onClick={follow} className="mb-6">
         จองล้างแอร์
       </Button>
 
@@ -36,7 +48,7 @@ export function MobileMenu() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  onClick={close}
+                  onClick={follow}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'pressable flex min-h-14 items-center gap-3.5 rounded-control px-3 py-2.5 no-underline',
@@ -73,7 +85,7 @@ export function MobileMenu() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  onClick={close}
+                  onClick={follow}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'pressable flex min-h-11 items-center gap-2 rounded-control px-3 py-2 text-small font-medium no-underline',

@@ -60,6 +60,9 @@ export function Section({
   return (
     <section
       id={id}
+      // a section with an id is a link target (/cleaning/#book, #request …): focusable by script only, so Next's hash
+      // navigation can move keyboard focus here instead of leaving it on the link at the top of the page
+      tabIndex={id ? -1 : undefined}
       aria-labelledby={headingId}
       className={cn('relative isolate scroll-mt-header', TONES[tone], SPACING[spacing], className)}
       {...rest}

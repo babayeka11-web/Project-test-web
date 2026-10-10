@@ -250,7 +250,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-padding-top: calc(var(--header-h) + 1rem);
-    scroll-padding-bottom: calc(var(--mobilebar-h) + 1rem);
+    /* --tray-h: the /products/ compare tray while it is open (set by Catalog) */
+    scroll-padding-bottom: calc(var(--mobilebar-h) + var(--tray-h, 0px) + 1rem);
   }
   @media (prefers-reduced-motion: no-preference) {
     html {

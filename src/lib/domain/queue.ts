@@ -127,6 +127,8 @@ export function judge(date: string | null | undefined, lines: readonly VisitLine
   if (sameDay) {
     const left = DAY_TO - Math.max(now.min, DAY_FROM);
     if (now.min >= 12 * 60) slots = slots.filter(s => s !== 'am' && s !== 'day');
+    // after closing time no slot of today is left — never show 'ช่วงบ่าย' at 21:00 (§6.6: no slot without a live queue)
+    if (now.min >= DAY_TO) slots = [];
     if (left < time[0] || !slots.length) late = true;
   }
   return { ...base, kind: rush ? 'rush' : 'normal', rush, closed, sameDay, late, slots };
