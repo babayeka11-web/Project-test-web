@@ -379,8 +379,8 @@ className="absolute … text-sky opacity-50" />` = the signature flowing lines (
 
 Brand files: `public/brand/sbp.png` (SP mark), `fujiva.png` (light backgrounds), `fujiva-light.png` (dark
 backgrounds) — always through `asset()` and never redrawn. Favicon (`src/app/icon.svg`, `apple-icon.png`) is our own
-mark: a wall unit with an orange power light and flowing air, on the navy→sky gradient. `opengraph-image.jpg` is the
-default share image for every page.
+mark: a wall unit with an orange power light and flowing air, on the navy→sky gradient. `public/og.jpg` is the
+default share image for every page (set in the root layout's `openGraph.images` with an absolute `SITE_URL` URL).
 
 ---
 

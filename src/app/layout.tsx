@@ -90,6 +90,8 @@ const DESCRIPTION =
   'ล้างแอร์ ติดตั้ง ซ่อม และขายแอร์ทุกแบรนด์ในกรุงเทพฯ และปริมณฑล โดยทีมช่างของบริษัท สหบูรพากรุ๊ป ' +
   'ดูราคามาตรฐานก่อน VAT ได้ทันที จองล้างแอร์ออนไลน์ หรือขอใบเสนอราคาสำหรับบ้านและองค์กร';
 
+const OG_ALT = 'SBP AirCare — ล้างแอร์ ติดตั้ง ซ่อม โดยทีมช่างของบริษัท สหบูรพากรุ๊ป กรุงเทพฯ และปริมณฑล';
+
 export const metadata: Metadata = {
   metadataBase: new URL(`${SITE_URL}/`),
   title: { default: DEFAULT_TITLE, template: '%s · SBP AirCare' },
@@ -101,19 +103,17 @@ export const metadata: Metadata = {
   keywords: ['ล้างแอร์', 'ติดตั้งแอร์', 'ซ่อมแอร์', 'ราคาแอร์', 'สัญญาล้างแอร์รายปี', 'กรุงเทพฯ', 'SBP AirCare', 'สหบูรพากรุ๊ป'],
   alternates: { canonical: './' },
   formatDetection: { telephone: false, email: false, address: false },
+  // No title/description here: Next fills og:/twitter: title and description from each page's own metadata.
+  // The share image is a plain public file with an absolute URL — the app/opengraph-image file convention prefixes
+  // basePath onto a metadataBase that already ends in /Project-test-web/, which doubled the path on GitHub Pages.
   openGraph: {
     type: 'website',
     locale: 'th_TH',
     siteName: COMPANY.brand,
-    title: DEFAULT_TITLE,
-    description: DESCRIPTION,
     url: './',
+    images: [{ url: `${SITE_URL}/og.jpg`, width: 1200, height: 630, type: 'image/jpeg', alt: OG_ALT }],
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: DEFAULT_TITLE,
-    description: DESCRIPTION,
-  },
+  twitter: { card: 'summary_large_image' },
 };
 
 export const viewport: Viewport = {
