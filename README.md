@@ -5,6 +5,8 @@
 
 ## มีอะไรบ้าง
 
+ภาพรวมทุกหน้า: [เดสก์ท็อป](docs/screens/desktop-all-pages.png) · [มือถือ](docs/screens/phone-all-pages.png) · [ใบเสนอราคาที่มีรายการ](docs/screens/quote-filled.png)
+
 | หน้า | ใช้ทำอะไร |
 | --- | --- |
 | `/` | หน้าแรก · จองล้างแอร์ด่วน เห็นราคารวมทันที |
