@@ -1,7 +1,7 @@
 'use client';
 // The price centre: one search box across every service line, six tabs, rows with price, warranty, รวม / ไม่รวม and
 // "ใส่ใบเสนอราคา". Rows arrive as compact props from the server page (build.ts) — this file never imports the Pricebook.
-import { memo, Suspense, useCallback, useDeferredValue, useEffect, useId, useMemo, useState } from 'react';
+import { memo, Suspense, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AddToQuote } from '@/components/shared/AddToQuote';
 import { Accordion, Badge, Button, Chip, cn, Field, Icon, Input, Notice, Price, Tabs, type TabItem } from '@/components/ui';
@@ -314,26 +314,25 @@ function TabBody({ tab, rows, pool, openIds, onToggle, query, otherHits, onTab, 
     <div>
       <p className="mb-6 max-w-[46rem] text-small text-ink-2">{meta.hint}</p>
       {tab === 'clean' && <CleanHeader pkg={pkg} onPkg={onPkg} searching={searching} />}
-      {rows.length === 0 ? (
+      {rows.length === 0 && searching && otherHits.length > 0 ? (
+        // only when the visitor picked this tab by hand during a search (otherwise the centre opens a tab with hits)
+        <div className="rounded-card border border-line bg-surface p-6 text-center sm:p-8">
+          <p className="text-body font-semibold text-ink">“{query}” อยู่ในหมวดอื่น</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {otherHits.map(h => (
+              <Button key={h.id} variant="soft" size="sm" onClick={() => onTab(h.id)}>
+                {h.label} · {h.n} รายการ
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : rows.length === 0 ? (
         <div className="rounded-card border border-line bg-surface p-6 text-center sm:p-10">
           <span className="mx-auto grid size-12 place-items-center rounded-full bg-sky-soft text-brand">
             <Icon name="search" size={24} />
           </span>
-          <p className="mt-4 text-h3">
-            {searching ? <>ไม่พบ “{query}” ในหมวด{meta.label}</> : 'ยังไม่มีรายการในหมวดนี้'}
-          </p>
-          {otherHits.length > 0 ? (
-            <>
-              <p className="mt-2 text-small text-ink-2">พบในหมวดอื่น</p>
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {otherHits.map(h => (
-                  <Button key={h.id} variant="soft" size="sm" onClick={() => onTab(h.id)}>
-                    {h.label} · {h.n} รายการ
-                  </Button>
-                ))}
-              </div>
-            </>
-          ) : (
+          <p className="mt-4 text-h3">{searching ? <>ไม่พบ “{query}” ในทุกหมวด</> : 'ยังไม่มีรายการในหมวดนี้'}</p>
+          {searching && (
             <p className="mx-auto mt-2 max-w-[30rem] text-small text-ink-2">
               ลองพิมพ์คำสั้นลง เช่น ติดผนัง ท่อ หรือขนาด BTU ถ้ายังไม่เจอ ทักทีมงานให้ช่วยหาได้
             </p>
@@ -430,7 +429,15 @@ export function PriceCenter({ rows, pool }: { rows: PriceRow[]; pool: string[] }
     });
   }, []);
 
+  // A tab the visitor picks while a search is typed is theirs: the search does not move away from it until they type again.
+  const pickedRef = useRef(false);
+  const typeQuery = useCallback((q: string) => {
+    pickedRef.current = false;
+    setQuery(q);
+  }, []);
+
   const changeTab = useCallback((id: PriceTabId) => {
+    pickedRef.current = true;
     setTab(id);
     try {
       const u = new URL(window.location.href);
@@ -445,12 +452,19 @@ export function PriceCenter({ rows, pool }: { rows: PriceRow[]; pool: string[] }
 
   // deep links must not rewrite the URL again → separate setter without replaceState
   const fromUrl = useCallback((id: PriceTabId) => setTab(id), []);
-  const clear = useCallback(() => setQuery(''), []);
+  const clear = useCallback(() => typeQuery(''), [typeQuery]);
 
   const otherHits = useMemo(
     () => PRICE_TABS.filter(t => t.id !== tab && byTab[t.id].length > 0).map(t => ({ id: t.id, label: t.label, n: byTab[t.id].length })),
     [byTab, tab],
   );
+
+  // A search with no hits in the open tab opens the first tab that has some ('คาปาซิเตอร์' → ซ่อม), so the answer is on
+  // screen without another tap. Before paint (layout effect): the empty tab never flashes and the status line is read once.
+  useLayoutEffect(() => {
+    if (!searching || pickedRef.current || byTab[tab].length > 0 || otherHits.length === 0) return;
+    setTab(otherHits[0].id);
+  }, [searching, byTab, tab, otherHits]);
 
   const total = byTab[tab].length;
   const tabLabel = PRICE_TABS.find(t => t.id === tab)!.label;
@@ -482,14 +496,14 @@ export function PriceCenter({ rows, pool }: { rows: PriceRow[]; pool: string[] }
   return (
     <div>
       <Suspense fallback={null}>
-        <UrlTab onTab={fromUrl} onQuery={setQuery} />
+        <UrlTab onTab={fromUrl} onQuery={typeQuery} />
       </Suspense>
       <div className="mb-8 grid gap-3 md:grid-cols-[minmax(0,34rem)_1fr] md:items-end md:gap-6">
         <Field label="ค้นหาค่าบริการ" id={searchId} hint="พิมพ์ชื่อรายการ ขนาด หรือรหัส เช่น 12000 · ท่อทองแดง · คาปาซิเตอร์">
           <Input
             type="search"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => typeQuery(e.target.value)}
             icon="search"
             size="lg"
             autoComplete="off"

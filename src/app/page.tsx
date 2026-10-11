@@ -24,11 +24,12 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   const from = serviceFrom();
+  const skuCount = getSkuCount();
   return (
     <>
-      <Hero from={cleanFrom()} />
+      <Hero from={cleanFrom()} skuCount={skuCount} />
       <QuickBookingSection id="book" />
-      <ServicesSection services={getServices()} from={from} skuCount={getSkuCount()} />
+      <ServicesSection services={getServices()} from={from} skuCount={skuCount} />
       <WhySection />
       <ProcessSection />
       <BusinessTeaser />
@@ -41,7 +42,7 @@ export default function HomePage() {
         lead="หรือโทรคุยกับทีมก่อนก็ได้ ทีมตอบในเวลาทำการ"
         actions={
           <>
-            <Button href="#book" size="lg" icon="clean">
+            <Button data-page-cta href="#book" size="lg" icon="clean">
               จองล้างแอร์
             </Button>
             <Button href={COMPANY.telHref} size="lg" variant="secondary" icon="phone">

@@ -1,11 +1,22 @@
 // Home hero: the page's only <h1>. Cleaning first — the headline price comes from the Pricebook (cleanFrom), the 3D unit
-// is a lazy client component on top of a still illustration (HeroVisual).
+// is a lazy client component on top of a still illustration (HeroVisual). Right under the booking action, one row of
+// soft links reaches the other services, so a visitor who came for installation, repair or a new unit sees the way on
+// the first phone screen instead of 5,000px further down.
 import { AirLines, Button, Container, Eyebrow, Icon, Price } from '@/components/ui';
+import { COMPANY } from '@/lib/domain/company';
+import { thousands } from '@/lib/domain/format';
 import { HeroVisual } from './HeroVisual';
 
-const TRUST = ['ทีมช่างของบริษัท', 'รายงานหลังงานรายเครื่อง', 'ใบกำกับภาษีเต็มรูป', 'ราคามาตรฐานก่อน VAT ชัดเจน'] as const;
+/** Facts only (desktop; phones see the same facts in "ข้อมูลบริษัท" further down). */
+const TRUST = ['รายงานหลังงานรายเครื่อง', 'ใบกำกับภาษีเต็มรูป', `ประสบการณ์${COMPANY.years}`] as const;
 
-export function Hero({ from }: { from: number }) {
+export function Hero({ from, skuCount }: { from: number; skuCount: number }) {
+  const others = [
+    { href: '/installation/', label: 'ติดตั้งแอร์' },
+    { href: '/repair/', label: 'ซ่อมแอร์' },
+    { href: '/products/', label: `ซื้อแอร์ ${thousands(skuCount)} รุ่น` },
+    { href: '/business/', label: 'สัญญาองค์กร' },
+  ];
   return (
     <header className="relative isolate -mt-header overflow-hidden bg-air pt-header">
       <AirLines
@@ -24,7 +35,8 @@ export function Hero({ from }: { from: number }) {
             <p className="max-w-[36rem] text-lead text-ink-2">
               เลือกชนิดและจำนวนเครื่อง ดูยอดรวมก่อน VAT ได้ทันที ทีมโทรยืนยันคิวและราคาก่อนเข้างานทุกครั้ง
             </p>
-            <div className="flex flex-wrap gap-3">
+            {/* the page's own orange action: the header's booking button turns soft while this row is on screen */}
+            <div data-page-cta className="flex flex-wrap gap-3">
               <Button href="#book" size="lg" icon="clean">
                 จองล้างแอร์
               </Button>
@@ -32,7 +44,23 @@ export function Hero({ from }: { from: number }) {
                 ดูค่าบริการทั้งหมด
               </Button>
             </div>
-            <ul className="grid grid-cols-1 gap-x-6 gap-y-2.5 text-small text-ink-2 xs:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <p className="text-meta text-ink-3">
+                หรือดูบริการอื่น
+              </p>
+              <nav aria-label="บริการอื่น">
+                <ul className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
+                  {others.map(o => (
+                    <li key={o.href} className="flex">
+                      <Button href={o.href} variant="soft" size="sm" className="w-full md:w-auto">
+                        {o.label}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+            <ul className="hidden grid-cols-1 gap-x-6 gap-y-2.5 text-small text-ink-2 md:grid md:grid-cols-2">
               {TRUST.map((t) => (
                 <li key={t} className="flex items-center gap-2.5">
                   <span aria-hidden className="grid size-5 shrink-0 place-items-center rounded-full bg-ok-soft text-ok">

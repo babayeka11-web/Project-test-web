@@ -30,7 +30,7 @@ export function CatalogCard({ m, skus, picked, onPick, modelHref, seriesHref, in
   const install = picked.installStdEx != null ? picked.price + picked.installStdEx : null;
   return (
     // the series link stretches over the whole card (after:inset-0); the size radios and buttons sit above it (z-10)
-    <article className="lift relative flex w-full min-w-0 flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card sm:gap-4 sm:p-5">
+    <article className="lift relative flex w-full min-w-0 flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5">
       <div className="flex items-center gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-sky-soft text-brand">
           <TypeArt type={m.type} className="size-9" aria-hidden />

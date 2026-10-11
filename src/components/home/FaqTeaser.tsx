@@ -6,7 +6,7 @@ export function FaqTeaser({ items }: { items: FaqItem[] }) {
   return (
     <Section
       id="faq"
-      eyebrow="คำถามที่พบบ่อย"
+      align="center"
       title="ก่อนจอง ลูกค้ามักถามเรื่องเหล่านี้"
       width="text"
       actions={

@@ -143,7 +143,7 @@ export default function BusinessPage() {
 
         <Section
           id="packages"
-            title="แพ็กเกจและรายงานที่ได้รับ"
+          title="แพ็กเกจและรายงานที่ได้รับ"
           lead="ทุกแพ็กเกจมีเอกสารส่งมอบ ต่างกันที่ความละเอียดของรายงาน ระยะรับประกัน และการดูแลหลังงาน"
         >
           <PackageCompare facts={facts} />
@@ -152,7 +152,7 @@ export default function BusinessPage() {
         <Section
           id="plan"
           tone="soft"
-            title="แผนล้างตลอดปี"
+          title="แผนล้างตลอดปี"
           lead="ดูว่าเดือนไหนทีมเข้า รอบไหนเป็นล้างใหญ่ และงบสะสมถึงปลายปีเท่าไร ตามจำนวนเครื่องที่ใส่ไว้ในเครื่องคำนวณ"
         >
           <YearPlan />

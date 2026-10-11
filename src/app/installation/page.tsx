@@ -53,6 +53,8 @@ export default function InstallationPage() {
             </Button>
           </>
         }
+        // the next section (#compare) repeats the price example, the included pipe and both warranties: phones skip the card
+        asideOnPhone="hide"
         aside={
           <Card padding="lg" className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
