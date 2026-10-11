@@ -10,6 +10,7 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
+  type Ref,
 } from 'react';
 import { cn } from './cn';
 import { Icon, type IconName } from './Icon';
@@ -154,6 +155,7 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   /** Short text inside the field, on the right (unit: "เครื่อง", "ตร.ม."). */
   suffix?: ReactNode;
   size?: 'md' | 'lg';
+  ref?: Ref<HTMLInputElement>;
 };
 
 export function Input({ icon, suffix, size = 'md', className, ...props }: InputProps) {

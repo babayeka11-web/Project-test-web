@@ -51,7 +51,8 @@ await step('home: quick booking → quote request → honest hand-off', async pa
 
 await step('catalog: search daikin 18000 → model page → add to quote', async page => {
   await page.goto(`${BASE}/products/`, { waitUntil: 'networkidle' });
-  const search = page.getByRole('searchbox').or(page.locator('input[type="search"]')).first();
+  const main = page.locator('main');
+  const search = main.getByRole('searchbox').or(main.locator('input[type="search"]')).first();
   await search.fill('daikin 18000');
   await page.waitForTimeout(600);
   const txt = await page.locator('main').innerText();
@@ -134,6 +135,56 @@ await step('knowledge: BTU calculator → products link keeps matching sizes', a
 
 await step('phone: home renders without overflow', async page => {
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (ov > 0) throw new Error(`overflow ${ov}px`);
+  return 'ok';
+}, { width: 390, height: 844 });
+
+await step('search: Ctrl K → Thai brand + 12k → series page', async page => {
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.keyboard.press('Control+k');
+  const box = page.getByRole('dialog', { name: 'ค้นหาในเว็บ' }).getByRole('searchbox');
+  await box.fill('ไดกิ้น 12k');
+  const first = page.locator('#site-search-results a').first();
+  await first.waitFor({ timeout: 10000 });
+  const title = (await first.innerText()).split('\n')[0];
+  if (!/^Daikin/.test(title)) throw new Error(`first result is ${title}`);
+  await box.press('Enter');
+  await page.waitForURL(/\/products\/daikin-[^/]+\/$/, { timeout: 20000 });
+  return `${title} → ${new URL(page.url()).pathname}`;
+});
+
+await step('phone: menu → search → ล้างแอร์ → cleaning page, no overflow', async page => {
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.locator('header').getByRole('button', { name: 'เปิดเมนู' }).click();
+  await page.getByRole('dialog', { name: 'เมนู' }).getByRole('button', { name: /ค้นหาในเว็บ/ }).click();
+  const box = page.getByRole('dialog', { name: 'ค้นหาในเว็บ' }).getByRole('searchbox');
+  await box.fill('ล้างแอร์');
+  await page.locator('#site-search-results a').first().waitFor({ timeout: 10000 });
+  const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (ov > 0) throw new Error(`overflow ${ov}px with the search open`);
+  await page.locator('#site-search-results a').first().click();
+  await page.waitForURL(/\/cleaning\/$/, { timeout: 20000 });
+  return 'ok';
+}, { width: 390, height: 844 });
+
+await step('status page: reference from the link, honest hand-off without the inbox', async page => {
+  await page.goto(`${BASE}/status/?ref=sbp-691011-k7q2`, { waitUntil: 'networkidle' });
+  const main = await page.locator('main').innerText();
+  for (const s of ['ตรวจสถานะคำขอ', 'นัดหมายแล้ว']) if (!main.includes(s)) throw new Error(`missing ${s}`);
+  const form = await page.getByRole('form', { name: 'ตรวจสถานะคำขอ' }).count();
+  if (form) {
+    const v = await page.getByRole('textbox', { name: /^เลขอ้างอิง/ }).inputValue();
+    if (v !== 'SBP-691011-K7Q2') throw new Error(`ref not filled: ${v}`);
+    return 'inbox connected: form filled from ?ref';
+  }
+  const line = await page.getByRole('link', { name: 'ถามทาง LINE' }).getAttribute('href');
+  if (!/SBP-691011-K7Q2/.test(decodeURIComponent(line || ''))) throw new Error('LINE message has no reference');
+  return 'no inbox: LINE + phone';
+});
+
+await step('phone: status page renders without overflow', async page => {
+  await page.goto(`${BASE}/status/`, { waitUntil: 'networkidle' });
   const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (ov > 0) throw new Error(`overflow ${ov}px`);
   return 'ok';

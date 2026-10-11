@@ -102,7 +102,7 @@ function skuMatches(sku: SkuLite, f: Pick<CatalogFilter, 'btu' | 'price'>): bool
   return true;
 }
 
-const squash = (s: string) => s.toLowerCase().replace(/[,\s\-/]/g, '');
+export const squash = (s: string) => s.toLowerCase().replace(/[,\s\-/]/g, '');
 const IGNORED_WORDS = new Set(['btu', 'บีทียู', 'แอร์']);
 
 /** How people write each brand in Thai, keyed by the exact brandName in the catalog data. Search text only: nothing here

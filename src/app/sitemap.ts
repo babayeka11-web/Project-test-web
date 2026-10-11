@@ -20,6 +20,7 @@ const MAIN: readonly [path: string, priority: number][] = [
   ['/knowledge/', 0.6],
   ['/faq/', 0.6],
   ['/contact/', 0.7],
+  ['/status/', 0.3],
   // /quote/ is left out: the per-visitor quote page is noindex
 ];
 

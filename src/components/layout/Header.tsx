@@ -14,6 +14,8 @@ import { Icon } from '@/components/ui/Icon';
 import { CartButton } from './CartButton';
 import { Logo } from './Logo';
 import { MobileMenu } from './MobileMenu';
+import { setSearchOpen, useSearchOpen } from './search-store';
+import { SiteSearch } from './SiteSearch';
 import { setMenuOpen, useMenuOpen } from './menu-store';
 import { bookingHref, isActive } from './nav-icons';
 import { usePageCtaVisible } from './use-page-cta-visible';
@@ -21,6 +23,7 @@ import { usePageCtaVisible } from './use-page-cta-visible';
 export function Header() {
   const pathname = usePathname();
   const menuOpen = useMenuOpen();
+  const searchOpen = useSearchOpen();
   const pageCta = usePageCtaVisible();
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
@@ -67,6 +70,15 @@ export function Header() {
             </ul>
           </nav>
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            <IconButton
+              icon="search"
+              label="ค้นหาในเว็บ"
+              aria-haspopup="dialog"
+              aria-expanded={searchOpen}
+              aria-keyshortcuts="Control+K Meta+K"
+              onClick={() => setSearchOpen(true)}
+              className="max-sm:hidden"
+            />
             {/* icon + count only: the row also holds เพิ่มเติม and the phone number within the 1136px container */}
             <div className="hidden md:block">
               <CartButton showLabel="never" />
@@ -112,6 +124,7 @@ export function Header() {
         </Container>
       </header>
       <MobileMenu />
+      <SiteSearch />
     </>
   );
 }

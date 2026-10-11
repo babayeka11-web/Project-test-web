@@ -35,4 +35,5 @@ export const NAV_MORE: NavItem[] = [
   { href: '/contact/', th: 'ติดต่อเรา' },
   { href: '/trade-in/', th: 'เทิร์นแอร์เก่า' },
   { href: '/quote/', th: 'ใบเสนอราคา' },
+  { href: '/status/', th: 'ตรวจสถานะคำขอ' },
 ];

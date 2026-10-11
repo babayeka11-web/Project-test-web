@@ -11,6 +11,7 @@ import { cn } from '@/components/ui/cn';
 import { Icon } from '@/components/ui/Icon';
 import { Sheet } from '@/components/ui/Sheet';
 import { setMenuOpen, useMenuOpen } from './menu-store';
+import { setSearchOpen } from './search-store';
 import { NAV_ICONS, bookingHref, isActive } from './nav-icons';
 
 /** Menu links worth prefetching when the sheet opens; the rest load on tap. */
@@ -40,6 +41,19 @@ export function MobileMenu() {
 
   return (
     <Sheet open={open} onClose={close} returnFocus={returnFocus} title="เมนู" side="right" size="sm">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => {
+          // open the search once the menu has closed and handed focus back, so the search field keeps it
+          setMenuOpen(false);
+          window.setTimeout(() => setSearchOpen(true), 250);
+        }}
+        className="pressable mb-4 flex h-12 w-full items-center gap-3 rounded-control border border-line bg-surface-2 px-4 text-left text-ink-3 hover:border-brand"
+      >
+        <Icon name="search" size={20} />
+        ค้นหาในเว็บ
+      </button>
       <Button href={bookingHref(pathname)} fullWidth size="lg" icon="clean" onClick={follow} className="mb-6">
         จองล้างแอร์
       </Button>

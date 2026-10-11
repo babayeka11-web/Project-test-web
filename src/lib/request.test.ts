@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { describe, expect, it } from 'vitest';
-import { buildSummary, handoffLinks, makeRef, submitRequest } from './request';
+import { buildSummary, handoffLinks, makeRef, normalizeRef, submitRequest } from './request';
 
 const fields = [['ชื่อ', 'สมชาย'], ['เบอร์โทร', '081-234-5678'], ['หมายเหตุ', '  ']] as const;
 
@@ -155,5 +155,15 @@ describe('submitRequest', () => {
         init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
       })) as unknown as typeof fetch;
     expect(await send(hang, URL, 20)).toEqual({ status: 'failed', ref: 'SBP-691009-AB12', reason: 'ระบบรับคำขอไม่ตอบกลับในเวลาที่กำหนด' });
+  });
+});
+
+describe('normalizeRef', () => {
+  it('reads a reference typed loosely and rejects anything else', () => {
+    expect(normalizeRef(' sbp-691011-k7q2 ')).toBe('SBP-691011-K7Q2');
+    expect(normalizeRef('SBP 691011 K7Q2')).toBe('SBP-691011-K7Q2');
+    expect(normalizeRef('SBP–691011–K7Q2')).toBe('SBP-691011-K7Q2');
+    expect(normalizeRef('691011-K7Q2')).toBe('');
+    expect(normalizeRef('')).toBe('');
   });
 });

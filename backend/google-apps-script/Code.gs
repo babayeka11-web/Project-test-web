@@ -17,6 +17,10 @@
  *    The request is checked, appended as one row to the sheet "คำขอ" (created with a header row when missing),
  *    and the team gets a plain-text e-mail when the Script Property NOTIFY_EMAIL is set.
  *  - doGet(e): health check, {"ok":true,"service":"sbp-requests","version":"…"} — open the /exec URL in a browser.
+ *  - doGet(e) with ?ref=SBP-691009-K7Q2&tel=5678: request status for the website's "ตรวจสถานะคำขอ" page
+ *    (src/lib/request.ts → checkStatus). Answers {ok:true, ref, kind, status, received} only when the reference AND the
+ *    last 4 digits of the phone number on that row match; never the name, phone, address or details. The status is
+ *    whatever the team typed in the "สถานะ" column (backend/README.md suggests the words).
  *
  * Answer: always JSON, {ok:true, ref} or {ok:false, error:'<Thai message>'}. Apps Script cannot set HTTP status codes,
  * so the website reads the body: it says "ส่งถึงทีมแล้ว" only for ok:true and shows the Thai error with the
@@ -41,7 +45,7 @@
 
 /** @OnlyCurrentDoc */
 
-var VERSION = '1.0.0';
+var VERSION = '1.1.0';
 var SERVICE = 'sbp-requests';
 
 var SHEET_NAME = 'คำขอ';
@@ -59,6 +63,10 @@ var DUPLICATE_WINDOW_SECONDS = 600; // 10 minutes
 var DUPLICATE_SCAN_ROWS = 50; // also look at the last rows of the sheet in case the cache entry was evicted
 var RATE_LIMIT_PER_MINUTE = 20;
 var LOCK_WAIT_MS = 10000;
+/** Status look-ups for the whole site per minute (each one reads the sheet; also slows down guessing). */
+var LOOKUPS_PER_MINUTE = 30;
+/** A look-up searches this many of the newest rows. */
+var LOOKUP_SCAN_ROWS = 5000;
 
 var REF_PATTERN = /^SBP-\d{6}-[0-9A-Z]{4}$/;
 var EMAIL_PATTERN = /^[^\s@<>(),;:"]+@[^\s@<>(),;:"]+\.[^\s@<>(),;:"]{2,}$/;
@@ -118,15 +126,28 @@ var MSG = {
   rateLimited: 'ขณะนี้มีคำขอเข้ามามาก ระบบรับเพิ่มไม่ได้ชั่วคราว ลองใหม่ในอีก 1 นาที',
   busy: 'ระบบรับคำขอไม่ว่างชั่วคราว ลองใหม่อีกครั้ง',
   internal: 'ระบบรับคำขอขัดข้องชั่วคราว',
+  badLookup: 'กรอกเลขอ้างอิง (SBP-…) และเบอร์โทร 4 ตัวท้าย',
+  notFound: 'ไม่พบคำขอนี้ ตรวจเลขอ้างอิงและเบอร์โทร 4 ตัวท้ายอีกครั้ง',
+  lookupLimited: 'ขณะนี้มีการตรวจสถานะมาก ลองใหม่ในอีก 1 นาที',
 };
 
 // ---------------------------------------------------------------------------------------------------------------
 // Entry points
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Health check: open the /exec URL in a browser to see that the deployment works. Shows no data. */
+/**
+ * Without ?ref / ?tel: health check — open the /exec URL in a browser to see that the deployment works. Shows no data.
+ * With them: the status of one request (lookupStatus_). Never throws.
+ */
 function doGet(e) {
-  return json_({ ok: true, service: SERVICE, version: VERSION });
+  var p = (e && e.parameter) || {};
+  if (p.ref == null && p.tel == null) return json_({ ok: true, service: SERVICE, version: VERSION });
+  try {
+    return lookupStatus_(String(p.ref || ''), String(p.tel || ''));
+  } catch (err) {
+    console.error('doGet failed: ' + (err && err.stack ? err.stack : err));
+    return fail_(MSG.internal);
+  }
 }
 
 /** One request from the website. Never throws: every outcome is a JSON answer. */
@@ -377,6 +398,54 @@ function joinDistinct_(parts, sep) {
 function cell_(v) {
   var s = v == null ? '' : String(v);
   return /^[=+\-@\t\r0-9]/.test(s) ? "'" + s : s;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Status look-up
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * The newest row with this reference whose phone number ends in these 4 digits → {ok:true, ref, kind, status, received}.
+ * A wrong reference and a wrong phone give the same answer, so the page cannot be used to learn which one exists.
+ * Every look-up counts toward LOOKUPS_PER_MINUTE (read without the lock: a look-up writes nothing to the sheet, and a
+ * few extra in a burst do no harm).
+ */
+function lookupStatus_(rawRef, rawTel) {
+  var ref = rawRef.trim().toUpperCase();
+  var tel = rawTel.replace(/\D/g, '');
+  if (!REF_PATTERN.test(ref) || !/^\d{4}$/.test(tel)) return fail_(MSG.badLookup);
+
+  var cache = CacheService.getScriptCache();
+  var key = 'look:' + Math.floor(nowMs_() / 60000);
+  var seen = Number(cache.get(key)) || 0;
+  if (seen >= LOOKUPS_PER_MINUTE) return fail_(MSG.lookupLimited);
+  cache.put(key, String(seen + 1), 120);
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  var last = sheet ? sheet.getLastRow() : 0;
+  if (last < 2) return fail_(MSG.notFound);
+  var count = Math.min(LOOKUP_SCAN_ROWS, last - 1);
+  var rows = sheet.getRange(last - count + 1, 1, count, HEADERS.length).getValues();
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var row = rows[i];
+    if (String(row[1]).replace(/^'/, '').trim().toUpperCase() !== ref) continue;
+    var digits = String(row[4]).replace(/\D/g, '');
+    if (digits.length < 4 || digits.slice(-4) !== tel) continue;
+    return json_({
+      ok: true,
+      ref: ref,
+      kind: String(row[2]).replace(/^'/, ''),
+      status: String(row[10]).replace(/^'/, '').trim() || STATUS_NEW,
+      received: receivedText_(row[0]),
+    });
+  }
+  return fail_(MSG.notFound);
+}
+
+/** The received-time cell as 'yyyy-MM-dd HH:mm' Bangkok time (the team may have turned the text into a date). */
+function receivedText_(v) {
+  if (v && typeof v.getTime === 'function') return Utilities.formatDate(v, TIME_ZONE, TIME_FORMAT).slice(0, 16);
+  return String(v).replace(/^'/, '').slice(0, 16);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

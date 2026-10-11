@@ -140,6 +140,57 @@ export async function submitRequest(
   }
 }
 
+export type StatusResult =
+  | { status: 'found'; ref: string; kind: string; state: string; received: string }
+  | { status: 'notFound' | 'failed'; reason: string }
+  | { status: 'unconfigured' };
+
+/** Reference number as the customer may type it (spaces, lower case) → 'SBP-691009-K7Q2', or '' when it is not one. */
+export function normalizeRef(v: string): string {
+  const s = v.toUpperCase().replace(/\s+/g, '').replace(/[\u2010-\u2015]/g, '-');
+  const m = /^SBP-?(\d{6})-?([0-9A-Z]{4})$/.exec(s);
+  return m ? `SBP-${m[1]}-${m[2]}` : '';
+}
+
+/** The status of one request from the Apps Script inbox (doGet ?ref=&tel=): found only when the answer is {ok:true}
+ *  naming this ref with a status; the script's Thai message otherwise. GET with no custom headers (a CORS simple
+ *  request); the answer carries no personal data. Never throws. */
+export async function checkStatus(
+  ref: string,
+  tel4: string,
+  opts: { endpoint?: string; fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<StatusResult> {
+  const endpoint = (opts.endpoint ?? FORM_ENDPOINT).trim();
+  if (!endpoint) return { status: 'unconfigured' };
+  const doFetch = opts.fetchImpl ?? fetch;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), opts.timeoutMs ?? TIMEOUT_MS);
+  const url = `${endpoint}${endpoint.includes('?') ? '&' : '?'}ref=${encodeURIComponent(ref)}&tel=${encodeURIComponent(tel4)}`;
+  try {
+    const res = await doFetch(url, { method: 'GET', signal: ctl.signal });
+    if (!res.ok) return { status: 'failed', reason: `ระบบตอบกลับไม่สำเร็จ (${res.status})` };
+    let data: Record<string, unknown> | undefined;
+    try {
+      const parsed: unknown = JSON.parse(await res.text());
+      if (parsed !== null && typeof parsed === 'object') data = parsed as Record<string, unknown>;
+    } catch {
+      data = undefined;
+    }
+    if (data?.ok === false) {
+      const msg = typeof data.error === 'string' && data.error.trim() ? data.error.trim().slice(0, 200) : 'ไม่พบคำขอนี้';
+      return { status: 'notFound', reason: msg };
+    }
+    if (data?.ok !== true || data.ref !== ref || typeof data.status !== 'string') return { status: 'failed', reason: UNREADABLE };
+    const text = (v: unknown) => (typeof v === 'string' ? v.slice(0, 100) : '');
+    return { status: 'found', ref, kind: text(data.kind), state: text(data.status), received: text(data.received) };
+  } catch (e) {
+    const aborted = e instanceof DOMException && e.name === 'AbortError';
+    return { status: 'failed', reason: aborted ? 'ระบบไม่ตอบกลับในเวลาที่กำหนด' : 'เชื่อมต่อระบบไม่ได้' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Read a 2xx answer. JSON {ok:false, error} → failed with the endpoint's (Thai) message; JSON {ok:true} → sent.
  *  Other 2xx answers (other form services: '{}', 'OK', an HTML thank-you page) → sent, except from Apps Script
  *  (`strict`, the endpoint or the final URL is Google's): there only {ok:true, ref: <this ref>} is proof, the answer

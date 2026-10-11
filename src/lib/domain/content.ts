@@ -58,6 +58,16 @@ export const PROCESS: readonly { th: string; d: string }[] = [
   { th: 'ส่งมอบ + รายงาน', d: 'ทดสอบการทำงาน ส่งเอกสารตามแพ็กเกจ และเงื่อนไขรับประกันต่อรายการ' },
 ];
 
+/** Words the team uses in the "สถานะ" column of the request sheet (backend/README.md), shown on /status/. "ใหม่" is what
+ *  the inbox writes for every new request (Code.gs STATUS_NEW). */
+export const STATUS_STEPS: readonly { th: string; d: string }[] = [
+  { th: 'ใหม่', d: 'ทีมได้รับคำขอแล้ว รอติดต่อกลับในเวลาทำการ' },
+  { th: 'ติดต่อแล้ว', d: 'ทีมคุยรายละเอียดหรือส่งใบเสนอราคาแล้ว' },
+  { th: 'นัดหมายแล้ว', d: 'ยืนยันวันและช่วงเวลาเข้างานแล้ว' },
+  { th: 'เสร็จแล้ว', d: 'ทำงานและส่งมอบเรียบร้อย' },
+  { th: 'ยกเลิก', d: 'คำขอนี้ปิดแล้ว ส่งคำขอใหม่ได้ทุกเมื่อ' },
+];
+
 /* ---------- FAQ ---------- */
 
 export type FaqItem = { q: string; a: string };
