@@ -195,7 +195,7 @@ export function SectorPanel({ sector: s, sample: c, benefits: b, scope, addOns, 
             <Price amount={b.perUnitMonth} prefix="≈" unit="/ เดือน" size="lg" tone="brand" />
           </Tile>
           <Tile icon="shield" k="เงื่อนไขในแพ็กเกจ" hint={b.terms}>
-            {c.pkg}
+            {PKG_TH[c.pkg].th}
           </Tile>
         </div>
         {b.special && <p className="mt-5 text-small text-ink-2">{NOTES.volume}</p>}

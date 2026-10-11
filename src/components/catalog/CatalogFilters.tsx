@@ -53,7 +53,7 @@ export function CatalogFilters({
             const on = filter.type.has(t.id);
             const n = counts.type[t.id] ?? 0;
             return (
-              <Chip key={t.id} className={OFF} selected={on} count={n} disabled={!on && n === 0} onClick={() => onChange({ type: toggleIn(filter.type, t.id) })}>
+              <Chip key={t.id} className={OFF} selected={on} count={n} countLabel="ซีรีส์" disabled={!on && n === 0} onClick={() => onChange({ type: toggleIn(filter.type, t.id) })}>
                 {t.th}
               </Chip>
             );
@@ -67,7 +67,7 @@ export function CatalogFilters({
             const on = filter.btu.has(b.id);
             const n = counts.btu[b.id] ?? 0;
             return (
-              <Chip key={b.id} className={OFF} selected={on} count={n} disabled={!on && n === 0} onClick={() => onChange({ btu: toggleIn(filter.btu, b.id) })}>
+              <Chip key={b.id} className={OFF} selected={on} count={n} countLabel="ซีรีส์" disabled={!on && n === 0} onClick={() => onChange({ btu: toggleIn(filter.btu, b.id) })}>
                 {b.th}
               </Chip>
             );
@@ -92,7 +92,14 @@ export function CatalogFilters({
                     {b.own && <Badge tone="sky">แบรนด์ของเรา</Badge>}
                   </span>
                 }
-                aside={b.own ? null : <span className="text-meta tabular-nums text-ink-3">{n}</span>}
+                aside={
+                  b.own ? null : (
+                    <span className="text-meta tabular-nums text-ink-3">
+                      {n}
+                      <span className="sr-only"> ซีรีส์</span>
+                    </span>
+                  )
+                }
               />
             );
           })}
@@ -115,7 +122,7 @@ export function CatalogFilters({
             const on = filter.price.has(b.id);
             const n = counts.price[b.id] ?? 0;
             return (
-              <Chip key={b.id} className={OFF} selected={on} count={n} disabled={!on && n === 0} onClick={() => onChange({ price: toggleIn(filter.price, b.id) })}>
+              <Chip key={b.id} className={OFF} selected={on} count={n} countLabel="ซีรีส์" disabled={!on && n === 0} onClick={() => onChange({ price: toggleIn(filter.price, b.id) })}>
                 {b.th}
               </Chip>
             );
@@ -129,6 +136,7 @@ export function CatalogFilters({
             className={OFF}
             selected={filter.inverter === 'inv'}
             count={counts.inverter.inv}
+            countLabel="ซีรีส์"
             disabled={filter.inverter !== 'inv' && counts.inverter.inv === 0}
             onClick={() => onChange({ inverter: filter.inverter === 'inv' ? '' : 'inv' })}
           >
@@ -138,6 +146,7 @@ export function CatalogFilters({
             className={OFF}
             selected={filter.inverter === 'fix'}
             count={counts.inverter.fix}
+            countLabel="ซีรีส์"
             disabled={filter.inverter !== 'fix' && counts.inverter.fix === 0}
             onClick={() => onChange({ inverter: filter.inverter === 'fix' ? '' : 'fix' })}
           >

@@ -1,9 +1,13 @@
 'use client';
-// The request form (#request): the cleaning booking and every other flow lands here. Validates on submit (name, 9–10 digit
-// phone, e-mail shape, date not in the past), focuses the first invalid field, then builds the summary with a reference
-// number, sends it with submitRequest() and shows the shared HandoffBox in place of the form. Never says "sent" unless the
-// endpoint answered 2xx (HandoffBox does the wording). The preferred date/slot live in the quote store (cart.pref) so a
-// booking tool's choice arrives pre-filled; cart.syncRush() keeps exactly one คิวด่วน line for a date inside the rush window.
+// The request form (#request): the cleaning booking and every other flow lands here. It keeps the promise of the lead —
+// name and phone, then the action: the summary of what is sent, the contact fields (plus the date when the work needs one
+// and none is chosen yet), the submit button, and everything else folded in a native <details> that stays mounted so
+// FormData still reads it. Validates on submit (name, 9–10 digit phone, e-mail shape, date not in the past), opens the
+// details when the first invalid field is inside and focuses it, then builds the summary with a reference number, sends it
+// with submitRequest() and shows the shared HandoffBox in place of the form. Never says "sent" unless the endpoint
+// answered 2xx (HandoffBox does the wording); with no endpoint the button says what it does ("สร้างสรุป…"). The preferred
+// date/slot live in the quote store (cart.pref) so a booking tool's choice arrives pre-filled; cart.syncRush() keeps
+// exactly one คิวด่วน line for a date inside the rush window.
 import { useEffect, useId, useMemo, useRef, useState, type FocusEvent, type FormEvent, type ReactNode } from 'react';
 import { HandoffBox } from '@/components/shared/HandoffBox';
 import { Button, Card, Checkbox, Field, Fieldset, Icon, Input, Notice, Section, Select, Skeleton, Textarea } from '@/components/ui';
@@ -13,16 +17,34 @@ import { TIME_NOTE, timeTh } from '@/lib/domain/content';
 import { NOTES } from '@/lib/domain/constants';
 import { bkkNow, dateHint, dateTh, judge, SLOTS, visitLinesOf, type SlotId } from '@/lib/domain/queue';
 import { baht } from '@/lib/domain/format';
-import { buildSummary, FORM_ENDPOINT, makeRef, PDPA_NOTE, submitRequest, type RequestField, type RequestKind, type SendResult } from '@/lib/request';
-import { areaText, hasBookableWork, quoteTextLines } from './quote-model';
+import {
+  buildSummary,
+  enterToNext,
+  FORM_ENDPOINT,
+  lineText,
+  makeRef,
+  PDPA_NOTE,
+  submitRequest,
+  type RequestField,
+  type RequestKind,
+  type SendResult,
+} from '@/lib/request';
+import { areaShort, areaText, groupLines, hasBookableWork, lineBrief, quoteTextLines } from './quote-model';
 import { useHydrated } from './use-hydrated';
 
 const CONDITIONS = ['ติดสูงเกิน 3 ม.', 'ไม่มีที่จอดรถ', 'ต้องขออนุญาตนิติบุคคล', 'มีสัตว์เลี้ยง'] as const;
+/** Annual contracts: what the team needs to know about the site and the buyer's process instead. */
+const CONTRACT_CONDITIONS = [
+  'หลายอาคาร / หลายสาขา',
+  'ต้องขออนุญาตนิติบุคคล',
+  'เข้างานได้นอกเวลาทำการเท่านั้น (มีค่าใช้จ่ายเพิ่มเติม)',
+  'ต้องการเอกสารผู้ขายสำหรับจัดซื้อ',
+] as const;
 
 type Key = 'name' | 'tel' | 'email' | 'date';
 type Errors = Partial<Record<Key, string>>;
 type Draft = { name: string; tel: string; line: string; email: string; tax: string; addr: string; note: string; conditions: string[] };
-type Outcome = { kind: RequestKind; result: SendResult; text: string };
+type Outcome = { kind: RequestKind; result: SendResult; text: string; line: string };
 
 const EMPTY_DRAFT: Draft = { name: '', tel: '', line: '', email: '', tax: '', addr: '', note: '', conditions: [] };
 
@@ -47,7 +69,21 @@ function problem(key: Key, value: string, today: string): string {
   return v && v < today ? 'วันที่ผ่านมาแล้ว เลือกวันนี้หรือวันถัดไป' : '';
 }
 
-const focusId = (key: Key) => document.getElementById(`quote-${key}`)?.focus();
+/** Focus a field by key; a field inside the closed "เพิ่มรายละเอียด" is shown first (a closed <details> renders nothing). */
+const focusId = (key: Key) => {
+  const el = document.getElementById(`quote-${key}`);
+  const fold = el?.closest('details');
+  if (fold && !fold.open) fold.open = true;
+  el?.focus();
+};
+
+const CONTACT_ID = 'quote-contact';
+
+/** Land on the contact fields: the group at the top of the view (under the header) and the cursor in the name field. */
+const focusContact = () => {
+  document.getElementById(CONTACT_ID)?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  document.getElementById('quote-name')?.focus({ preventScroll: true });
+};
 
 export function RequestSection() {
   const hydrated = useHydrated();
@@ -58,12 +94,13 @@ export function RequestSection() {
     if (hydrated) cart.syncRush(pref.date);
   }, [hydrated, pref.date, lines]);
 
-  // arriving on /quote/#request: the page grew when the quote loaded, so scroll to the form once more
-  const scrolled = useRef(false);
+  // arriving on /quote/#request (quick booking, repair checker): the page grew when the quote loaded, so land on the
+  // contact fields once the form is there, with the cursor in the name field
+  const landed = useRef(false);
   useEffect(() => {
-    if (!hydrated || scrolled.current || lines.length === 0) return;
-    scrolled.current = true;
-    if (window.location.hash === '#request') requestAnimationFrame(() => document.getElementById('request')?.scrollIntoView());
+    if (!hydrated || landed.current || lines.length === 0) return;
+    landed.current = true;
+    if (window.location.hash === '#request') requestAnimationFrame(focusContact);
   }, [hydrated, lines.length]);
 
   if (hydrated && lines.length === 0) return <div id="request" aria-hidden className="scroll-mt-header print:hidden" />;
@@ -73,12 +110,9 @@ export function RequestSection() {
       id="request"
       tone="soft"
       className="print:hidden"
-      eyebrow="ส่งคำขอ"
       title="ส่งให้ทีมยืนยันราคาและคิว"
       lead={
-        FORM_ENDPOINT
-          ? 'กรอกแค่ชื่อกับเบอร์โทรก็ส่งได้ ข้อมูลอื่นช่วยให้ทีมเตรียมงานและตอบกลับได้ตรงขึ้น'
-          : 'กรอกแค่ชื่อกับเบอร์โทร แล้วส่งสรุปให้ทีมทาง LINE หรือโทรแจ้ง ข้อมูลอื่นช่วยให้ทีมเตรียมงานและตอบกลับได้ตรงขึ้น'
+        FORM_ENDPOINT ? 'กรอกแค่ชื่อกับเบอร์โทรก็ส่งได้ รายละเอียดอื่นเพิ่มทีหลังได้' : 'กรอกแค่ชื่อกับเบอร์โทร แล้วส่งสรุปให้ทีมทาง LINE หรือโทรแจ้ง'
       }
     >
       {hydrated ? (
@@ -124,11 +158,11 @@ function HowItWorks() {
 }
 
 /** A titled block of the form (a labelled group, with a divider above unless it is the first). */
-function Group({ title, first, children }: { title: string; first?: boolean; children: ReactNode }) {
-  const id = useId();
+function Group({ id, title, first, children }: { id?: string; title: string; first?: boolean; children: ReactNode }) {
+  const titleId = useId();
   return (
-    <div role="group" aria-labelledby={id} className={`flex flex-col gap-5 ${first ? '' : 'border-t border-line pt-7'}`}>
-      <h3 id={id} className="text-h3">
+    <div id={id} role="group" aria-labelledby={titleId} className={`flex flex-col gap-5 ${first ? '' : 'border-t border-line pt-7'}`}>
+      <h3 id={titleId} className="text-h3">
         {title}
       </h3>
       {children}
@@ -143,7 +177,7 @@ function RequestForm() {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [round, setRound] = useState(0);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLHeadingElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const now = bkkNow();
@@ -157,9 +191,23 @@ function RequestForm() {
   const slot = slotIdOf(pref.slot);
   const slotValue = slot && J.slots.includes(slot) ? slot : '';
   const kind: RequestKind = bookable && pref.date ? 'booking' : 'quote';
+  const contract = lines.some(l => l.group === 'contract');
+  const repair = lines.some(l => l.group === 'repair');
+  const conditions: readonly string[] = contract ? CONTRACT_CONDITIONS : CONDITIONS;
+
+  // Where the date field sits is decided once per form, not on every change (picking a date must not move the field
+  // away): no date yet and the work needs a visit date (repair, the survey of a contract) → next to name and phone;
+  // otherwise it is folded in "เพิ่มรายละเอียด" and the chosen date shows in the summary box with "เปลี่ยน".
+  const dateUpFor = (ls: readonly { group: string }[], date: string) => !date && ls.some(l => l.group === 'repair' || l.group === 'contract');
+  const [dateUp, setDateUp] = useState(() => dateUpFor(lines, pref.date));
+  const [foldOpen, setFoldOpen] = useState(false);
+  // the last field of the quick path sends the form (Enter in it submits); the ones before it move to the next field
+  const last = contract ? 'tax' : dateUp ? 'date' : 'tel';
 
   useEffect(() => {
-    if (outcome) resultRef.current?.focus();
+    if (!outcome) return;
+    resultRef.current?.scrollIntoView({ block: 'start' });
+    resultRef.current?.focus({ preventScroll: true });
   }, [outcome]);
 
   const setDate = (date: string) => {
@@ -201,8 +249,8 @@ function RequestForm() {
     const first = (['name', 'tel', 'email', 'date'] as const).find(k => found[k]);
     if (first) return focusId(first);
 
-    const conditions = CONDITIONS.filter(c => fd.getAll('cond').includes(c));
-    setDraft({ name: v('name'), tel: v('tel'), line: v('line'), email: v('email'), tax: v('tax'), addr: v('addr'), note: v('note'), conditions: [...conditions] });
+    const picked = conditions.filter(c => fd.getAll('cond').includes(c));
+    setDraft({ name: v('name'), tel: v('tel'), line: v('line'), email: v('email'), tax: v('tax'), addr: v('addr'), note: v('note'), conditions: picked });
 
     // take the quote as it is right now, not as it was at the last render
     const st = cart.get();
@@ -219,7 +267,7 @@ function RequestForm() {
       ['ที่อยู่หน้างาน', v('addr')],
       ['วันที่สะดวก', st.pref.date ? `${dateTh(st.pref.date)} (${st.pref.date})` : ''],
       ['ช่วงเวลา', sl ? SLOTS[sl].th : ''],
-      ['สภาพหน้างาน', conditions.join(' · ')],
+      ['สภาพหน้างาน', picked.join(' · ')],
       ['หมายเหตุ', v('note')],
     ];
     const extra = [...quoteTextLines(st.lines, st.zone, st.zoneInput, t), '', 'รูปหน้างานส่งทาง LINE ตามหลังได้ แจ้งเลขอ้างอิงนี้'];
@@ -227,26 +275,39 @@ function RequestForm() {
     setSending(true);
     const ref = makeRef();
     const text = buildSummary(k, ref, fields, extra);
+    // LINE gets the short version (a long summary does not fit a LINE link); copy and e-mail carry the full text
+    const line = lineText(k, ref, {
+      name: v('name'),
+      tel: telDigits(v('tel')),
+      when: st.pref.date ? `${dateTh(st.pref.date)}${sl ? ` · ${SLOTS[sl].th}` : ''}` : '',
+      area: areaShort(st.zone, st.zoneInput),
+      items: groupLines(st.lines).flatMap(g => g.lines.map(lineBrief)),
+      total: t.totalEx > 0 ? baht(t.inc) : undefined,
+    });
     const result = await submitRequest(k, ref, fields, text);
     setSending(false);
-    setOutcome({ kind: k, result, text });
+    setOutcome({ kind: k, result, text, line });
   };
 
   if (outcome) {
     return (
-      <Card padding="lg" className="flex flex-col gap-5">
-        <div ref={resultRef} tabIndex={-1} className="flex scroll-mt-header flex-col gap-5 outline-none">
-          <h3 className="text-h3">{outcome.result.status === 'sent' ? 'ส่งคำขอแล้ว' : 'สรุปคำขอของคุณ'}</h3>
-          <HandoffBox
-            kind={outcome.kind}
-            result={outcome.result}
-            text={outcome.text}
-            onReset={() => {
-              setOutcome(null);
-              setRound(r => r + 1);
-            }}
-          />
-        </div>
+      <Card padding="lg">
+        <HandoffBox
+          kind={outcome.kind}
+          result={outcome.result}
+          text={outcome.text}
+          lineText={outcome.line}
+          titleRef={resultRef}
+          onReset={() => {
+            const st = cart.get();
+            setOutcome(null);
+            setRound(r => r + 1);
+            setDateUp(dateUpFor(st.lines, st.pref.date));
+            // a new request keeps what was typed (defaultValue = draft): show the folded part when it holds something
+            setFoldOpen(!!(draft.line || draft.email || draft.addr || draft.note || draft.conditions.length || (draft.tax && !contract)));
+            requestAnimationFrame(focusContact);
+          }}
+        />
       </Card>
     );
   }
@@ -256,11 +317,75 @@ function RequestForm() {
   const errorCount = Object.values(errors).filter(Boolean).length;
   const fit = J.fit;
   const fitText = fit.kind === 'half' ? 'ครึ่งวัน' : fit.kind === 'day' ? 'ทั้งวัน' : `ประมาณ ${fit.days} วันทำการ`;
+  const dateLabel = contract ? 'วันที่สะดวกให้ทีมสำรวจหน้างาน' : repair ? 'วันที่สะดวกให้ช่างเข้า' : 'วันที่สะดวก';
+  const foldList = ['LINE ID', 'อีเมล', !dateUp && !pref.date ? 'วันเวลา' : '', 'ที่อยู่', 'สภาพหน้างาน', contract ? '' : 'ใบกำกับภาษี'].filter(Boolean);
+
+  const taxField = (
+    <Field label="ใบกำกับภาษีในนาม" optional id="quote-tax" hint="ชื่อบริษัทหรือชื่อผู้เสียภาษี พร้อมเลขประจำตัวผู้เสียภาษี ถ้าต้องการใบกำกับภาษีเต็มรูป">
+      <Input name="tax" autoComplete="organization" icon="building" enterKeyHint={last === 'tax' ? 'send' : undefined} defaultValue={draft.tax} />
+    </Field>
+  );
+
+  const dateFields = (
+    <>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <Field label={dateLabel} optional id="quote-date" error={errors.date}>
+          <Input
+            name="date"
+            type="date"
+            min={today}
+            value={pref.date}
+            onChange={e => setDate(e.target.value)}
+            aria-describedby="quote-date-hint"
+            enterKeyHint={last === 'date' ? 'send' : undefined}
+          />
+        </Field>
+        {/* next to name and phone the slot shows once there is a date, so the quick path stays short */}
+        {(pref.date || !dateUp) && (
+          <Field label="ช่วงเวลาที่สะดวก" optional id="quote-slot">
+            <Select
+              name="slot"
+              placeholder={pref.date ? 'ให้ทีมเสนอเวลา' : 'เลือกวันก่อน'}
+              disabled={!pref.date || J.slots.length === 0}
+              value={slotValue}
+              onChange={e => cart.setPref(pref.date, e.target.value ? SLOTS[e.target.value as SlotId].th : '')}
+            >
+              {J.slots.map(id => (
+                <option key={id} value={id}>
+                  {SLOTS[id].th} · {SLOTS[id].sub}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+      </div>
+      <div aria-live="polite" className="-mt-1 flex flex-col gap-2">
+        <p id="quote-date-hint" className={`text-small ${hint.warn ? 'font-medium text-warn' : 'text-ink-2'}`}>
+          {hint.text}
+        </p>
+        {J.kind === 'rush' && J.late && <Notice tone="warn" size="sm">{`ช่วงที่เหลือของวันนี้อาจไม่พอ ถ้าเกินเวลาทำการ ${NOTES.outOfHours}`}</Notice>}
+        {hasVisit && J.time[1] > 0 && (
+          <p className="text-meta text-ink-3">
+            เวลาทำงานโดยประมาณ {timeTh(J.time)} ({fitText}){J.time[2] > 0 ? ' · บางรายการทีมแจ้งเวลาหลังประเมิน' : ''} · {TIME_NOTE}
+          </p>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <Card padding="lg" className="min-w-0">
-      <form key={round} ref={formRef} noValidate onSubmit={onSubmit} onBlur={onBlur} onInput={onInput} className="flex flex-col gap-7">
-        {/* what is being sent */}
+      <form
+        key={round}
+        ref={formRef}
+        noValidate
+        onSubmit={onSubmit}
+        onBlur={onBlur}
+        onInput={onInput}
+        onKeyDown={enterToNext}
+        className="flex flex-col gap-7"
+      >
+        {/* (1) what is being sent */}
         <div className="flex flex-col gap-1 rounded-control bg-surface-2 p-4 text-small">
           <p className="text-ink">
             <b>
@@ -274,101 +399,52 @@ function RequestForm() {
               {area ? 'เปลี่ยน' : 'เลือกพื้นที่'}
             </a>
           </p>
+          {pref.date && !dateUp && (
+            <>
+              <div className="flex flex-wrap items-center gap-x-1">
+                <p className="text-ink-2">
+                  {dateLabel}{' '}
+                  <span className="font-semibold text-ink">
+                    {dateTh(pref.date)} · {slotValue ? SLOTS[slotValue].th : 'ให้ทีมเสนอเวลา'}
+                  </span>
+                </p>
+                <Button type="button" variant="quiet" size="sm" className="-my-2" onClick={() => focusId('date')}>
+                  เปลี่ยน
+                  <span className="sr-only"> {dateLabel}</span>
+                </Button>
+              </div>
+              {hint.warn && <p className="text-meta text-ink-2">{hint.text}</p>}
+            </>
+          )}
           <p className="text-meta text-ink-3">{NOTES.estimate}</p>
         </div>
 
         {errorCount > 0 && (
-          <Notice tone="bad" live="assertive" size="sm" title="ยังส่งไม่ได้">
-            ตรวจ {errorCount} ช่องที่มีข้อความสีแดงด้านล่าง แล้วกดส่งอีกครั้ง
+          <Notice tone="bad" live="assertive" size="sm" title={FORM_ENDPOINT ? 'ยังส่งไม่ได้' : 'ยังสร้างสรุปไม่ได้'}>
+            ตรวจ {errorCount} ช่องที่มีข้อความสีแดงด้านล่าง แล้วกดอีกครั้ง
           </Notice>
         )}
 
-        <Group title="ข้อมูลติดต่อ" first>
+        {/* (2) name and phone — all a request needs (plus the date for a visit that has none yet) */}
+        <Group id={CONTACT_ID} title="ข้อมูลติดต่อ" first>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="ชื่อ / บริษัท" required id="quote-name" hint="ชื่อที่ให้ทีมเรียก" error={errors.name}>
-              <Input name="name" autoComplete="name" defaultValue={draft.name} />
+              <Input name="name" autoComplete="name" enterKeyHint="next" defaultValue={draft.name} />
             </Field>
             <Field label="เบอร์โทร" required id="quote-tel" hint="ทีมโทรยืนยันในเวลาทำการ" error={errors.tel}>
-              <Input name="tel" type="tel" inputMode="tel" autoComplete="tel" icon="phone" defaultValue={draft.tel} />
-            </Field>
-            <Field label="LINE ID" optional id="quote-line" hint="ให้ทีมทักไปส่งราคาและยืนยันคิว">
-              <Input name="line" autoComplete="off" defaultValue={draft.line} />
-            </Field>
-            <Field label="อีเมล" optional id="quote-email" hint="สำหรับให้ทีมส่งใบเสนอราคา" error={errors.email}>
-              <Input name="email" type="email" inputMode="email" autoComplete="email" icon="mail" defaultValue={draft.email} />
-            </Field>
-          </div>
-        </Group>
-
-        <Group title="วันและสถานที่">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <Field label="วันที่สะดวก" optional id="quote-date" error={errors.date}>
               <Input
-                name="date"
-                type="date"
-                min={today}
-                value={pref.date}
-                onChange={e => setDate(e.target.value)}
-                aria-describedby="quote-date-hint"
+                name="tel"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                icon="phone"
+                enterKeyHint={last === 'tel' ? 'send' : 'next'}
+                defaultValue={draft.tel}
               />
             </Field>
-            <Field label="ช่วงเวลาที่สะดวก" optional id="quote-slot">
-              <Select
-                name="slot"
-                placeholder={pref.date ? 'ให้ทีมเสนอเวลา' : 'เลือกวันก่อน'}
-                disabled={!pref.date || J.slots.length === 0}
-                value={slotValue}
-                onChange={e => cart.setPref(pref.date, e.target.value ? SLOTS[e.target.value as SlotId].th : '')}
-              >
-                {J.slots.map(id => (
-                  <option key={id} value={id}>
-                    {SLOTS[id].th} · {SLOTS[id].sub}
-                  </option>
-                ))}
-              </Select>
-            </Field>
           </div>
-          <div aria-live="polite" className="-mt-1 flex flex-col gap-2">
-            <p id="quote-date-hint" className={`text-small ${hint.warn ? 'font-medium text-warn' : 'text-ink-2'}`}>
-              {hint.text}
-            </p>
-            {J.kind === 'rush' && J.late && <Notice tone="warn" size="sm">{`ช่วงที่เหลือของวันนี้อาจไม่พอ ถ้าเกินเวลาทำการ ${NOTES.outOfHours}`}</Notice>}
-            {hasVisit && J.time[1] > 0 && (
-              <p className="text-meta text-ink-3">
-                เวลาทำงานโดยประมาณ {timeTh(J.time)} ({fitText}){J.time[2] > 0 ? ' · บางรายการทีมแจ้งเวลาหลังประเมิน' : ''} · {TIME_NOTE}
-              </p>
-            )}
-          </div>
-          <Field label="รายละเอียดที่อยู่หน้างาน" optional id="quote-addr" hint="บ้านเลขที่ หมู่บ้านหรืออาคาร ชั้น ห้อง ซอย ถนน ช่วยให้ทีมวางเส้นทางและเตรียมของ">
-            <Textarea name="addr" rows={3} autoComplete="street-address" defaultValue={draft.addr} />
-          </Field>
-          {needsArea && (
-            <Notice tone="info" size="sm">
-              {/* with no area a cleaning below the minimum already carries the core-area ฿300 trip — say what the total holds */}
-              {totals.travel > 0
-                ? `ยังไม่ได้เลือกพื้นที่ ยอดนี้คิดค่าเดินทางแบบพื้นที่หลัก ${baht(totals.travel)} ถ้าหน้างานอยู่นอกพื้นที่หลัก ค่าเดินทางเปลี่ยนตามระยะ`
-                : 'ยังไม่ได้เลือกพื้นที่ ค่าเดินทางยังไม่รวมในยอดนี้ ทีมแจ้งพร้อมราคา'}
-            </Notice>
-          )}
-          <Fieldset legend="สภาพหน้างาน" hint="เลือกที่ตรงกับหน้างาน ทีมจะเตรียมอุปกรณ์และแจ้งค่าใช้จ่ายเพิ่ม (ถ้ามี) ก่อนเข้างาน">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-              {CONDITIONS.map(c => (
-                <Checkbox key={c} name="cond" value={c} label={c} defaultChecked={draft.conditions.includes(c)} />
-              ))}
-            </div>
-          </Fieldset>
-        </Group>
-
-        <Group title="รายละเอียดเพิ่มเติม">
-          <Field label="ใบกำกับภาษีในนาม" optional id="quote-tax" hint="ชื่อบริษัทหรือชื่อผู้เสียภาษี พร้อมเลขประจำตัวผู้เสียภาษี ถ้าต้องการใบกำกับภาษีเต็มรูป">
-            <Input name="tax" autoComplete="organization" icon="building" defaultValue={draft.tax} />
-          </Field>
-          <Field label="หมายเหตุ" optional id="quote-note" hint="เช่น ช่วงเวลาที่เข้าหน้างานได้ ชั้นของเครื่อง อาการที่พบ">
-            <Textarea name="note" rows={3} defaultValue={draft.note} />
-          </Field>
-          <Notice tone="info" size="sm" icon="camera">
-            ส่งรูปหน้างานทาง LINE ได้หลังส่งคำขอ ช่วยให้ทีมประเมินได้เร็วขึ้น
-          </Notice>
+          {dateUp && dateFields}
+          {contract && taxField}
         </Group>
 
         {/* honeypot: hidden from people and assistive tech, bots fill it */}
@@ -379,15 +455,98 @@ function RequestForm() {
           </label>
         </div>
 
-        <div className="flex flex-col gap-4 border-t border-line pt-7">
-          <Button type="submit" size="lg" icon="send" loading={sending} fullWidth className="sm:w-auto sm:self-start">
-            {sending ? 'กำลังส่ง…' : kind === 'booking' ? 'ส่งคำขอจองคิว' : 'ส่งคำขอใบเสนอราคา'}
+        {/* (3) the action */}
+        <div data-page-cta className="flex flex-col gap-3">
+          <Button type="submit" size="lg" icon={FORM_ENDPOINT ? 'send' : 'document'} loading={sending} fullWidth className="sm:w-auto sm:self-start">
+            {sending
+              ? FORM_ENDPOINT
+                ? 'กำลังส่ง…'
+                : 'กำลังสร้างสรุป…'
+              : FORM_ENDPOINT
+                ? kind === 'booking'
+                  ? 'ส่งคำขอจองคิว'
+                  : 'ส่งคำขอใบเสนอราคา'
+                : kind === 'booking'
+                  ? 'สร้างสรุปการจอง'
+                  : 'สร้างสรุปคำขอ'}
           </Button>
+          {!FORM_ENDPOINT && <p className="text-meta text-ink-3">ขั้นต่อไป ส่งสรุปทาง LINE หรือโทรแจ้งเลขอ้างอิง</p>}
           <p className="flex items-start gap-2 text-meta text-ink-3">
             <Icon name="shield" size={16} className="mt-[0.25em] shrink-0" />
             <span>{PDPA_NOTE}</span>
           </p>
         </div>
+
+        {/* (4) everything optional, folded — the inputs stay mounted, so FormData reads them even while closed */}
+        <details open={foldOpen} className="group rounded-control border border-line">
+          <summary className="flex min-h-14 list-none items-center justify-between gap-4 rounded-control px-4 py-3 hover:bg-surface-2/60 [&::-webkit-details-marker]:hidden">
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-ink-2">
+                <span className="font-semibold text-ink">เพิ่มรายละเอียด (ไม่บังคับ)</span> · {foldList.join(' ')}
+              </span>
+              <span className="text-meta text-ink-3">ช่วยให้ทีมเตรียมงานได้ตรงขึ้น</span>
+            </span>
+            <span
+              aria-hidden
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-ink-2 group-open:bg-sky-soft group-open:text-brand"
+            >
+              <Icon name="chevron-down" size={18} className="transition-transform duration-250 ease-air group-open:rotate-180" />
+            </span>
+          </summary>
+
+          <div className="flex flex-col gap-7 border-t border-line px-4 pb-5 pt-6 sm:px-5">
+            <Group title="ช่องทางติดต่ออื่น" first>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <Field label="LINE ID" optional id="quote-line" hint="ให้ทีมทักไปส่งราคาและยืนยันคิว">
+                  <Input
+                    name="line"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="next"
+                    defaultValue={draft.line}
+                  />
+                </Field>
+                <Field label="อีเมล" optional id="quote-email" hint="สำหรับให้ทีมส่งใบเสนอราคา" error={errors.email}>
+                  <Input name="email" type="email" inputMode="email" autoComplete="email" icon="mail" enterKeyHint="next" defaultValue={draft.email} />
+                </Field>
+              </div>
+            </Group>
+
+            <Group title="วันและสถานที่">
+              {!dateUp && dateFields}
+              <Field label="รายละเอียดที่อยู่หน้างาน" optional id="quote-addr" hint="บ้านเลขที่ หมู่บ้านหรืออาคาร ชั้น ห้อง ซอย ถนน ช่วยให้ทีมวางเส้นทางและเตรียมของ">
+                <Textarea name="addr" rows={3} autoComplete="street-address" defaultValue={draft.addr} />
+              </Field>
+              {needsArea && (
+                <Notice tone="info" size="sm">
+                  {/* with no area a cleaning below the minimum already carries the core-area ฿300 trip — say what the total holds */}
+                  {totals.travel > 0
+                    ? `ยังไม่ได้เลือกพื้นที่ ยอดนี้คิดค่าเดินทางแบบพื้นที่หลัก ${baht(totals.travel)} ถ้าหน้างานอยู่นอกพื้นที่หลัก ค่าเดินทางเปลี่ยนตามระยะ`
+                    : 'ยังไม่ได้เลือกพื้นที่ ค่าเดินทางยังไม่รวมในยอดนี้ ทีมแจ้งพร้อมราคา'}
+                </Notice>
+              )}
+              <Fieldset legend="สภาพหน้างาน" hint="เลือกที่ตรงกับหน้างาน ทีมจะเตรียมอุปกรณ์และแจ้งค่าใช้จ่ายเพิ่ม (ถ้ามี) ก่อนเข้างาน">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                  {conditions.map(c => (
+                    <Checkbox key={c} name="cond" value={c} label={c} defaultChecked={draft.conditions.includes(c)} />
+                  ))}
+                </div>
+              </Fieldset>
+            </Group>
+
+            <Group title="รายละเอียดเพิ่มเติม">
+              {!contract && taxField}
+              <Field label="หมายเหตุ" optional id="quote-note" hint="เช่น ช่วงเวลาที่เข้าหน้างานได้ ชั้นของเครื่อง อาการที่พบ">
+                <Textarea name="note" rows={3} defaultValue={draft.note} />
+              </Field>
+              <Notice tone="info" size="sm" icon="camera">
+                ส่งรูปหน้างานทาง LINE ได้หลังส่งคำขอ ช่วยให้ทีมประเมินได้เร็วขึ้น
+              </Notice>
+            </Group>
+          </div>
+        </details>
       </form>
     </Card>
   );

@@ -11,10 +11,7 @@ export function PackageCards({ table }: { table: CleanRateTable }) {
         return (
           <li key={p.id} className="flex min-w-0">
             <Card padding="md" className="flex w-full flex-col gap-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Badge tone="outline" size="md">
-                  {p.code}
-                </Badge>
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={p.code === 'P2' ? 'brand' : 'sky'} size="md">
                   {p.pitch}
                 </Badge>

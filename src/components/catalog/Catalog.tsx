@@ -27,6 +27,9 @@ import type { ListSeries, ListSku } from './spec';
 
 const PAGE = 24;
 const MAX_COMPARE = 4;
+/** Shown when nothing matches: a tap puts the words in the search box. */
+const EXAMPLE_QUERIES = ['ไดกิ้น', 'มิตซูบิชิ', 'ติดผนัง 12000'] as const;
+const SEARCH_ID = 'catalog-q';
 
 export type CatalogProps = { models: ListSeries[]; pool: string[]; brands: Brand[] };
 
@@ -178,6 +181,11 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
     return out;
   }, [filter, brands]);
   const clearAll = () => setFilter(f => ({ ...f, q: '', type: new Set(), brand: new Set(), btu: new Set(), price: new Set(), inverter: '' }));
+  // the buttons outside the sheet disappear once nothing is left to clear: park focus on the result count
+  const clearAllAndFocus = () => {
+    clearAll();
+    focusStatus();
+  };
 
   const onFacet = (p: FilterPatch) => patch(p);
 
@@ -203,7 +211,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
             <div className="mb-5 flex items-center justify-between gap-3">
               <h3 className="text-h3">ตัวกรอง</h3>
               {facetCount > 0 && (
-                <button type="button" onClick={clearAll} className="pressable min-h-11 rounded-full px-2 text-small font-semibold text-brand hover:underline">
+                <button type="button" onClick={clearAllAndFocus} className="pressable min-h-11 rounded-full px-2 text-small font-semibold text-brand hover:underline">
                   ล้างทั้งหมด
                 </button>
               )}
@@ -214,7 +222,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
 
         <div className="flex min-w-0 flex-col gap-5">
           <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_13rem]">
-            <Field label="ค้นหารุ่น" className="col-span-2 sm:col-span-1">
+            <Field label="ค้นหารุ่น" id={SEARCH_ID} className="col-span-2 sm:col-span-1">
               <Input
                 type="search"
                 icon="search"
@@ -222,7 +230,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
                 enterKeyHint="search"
                 autoComplete="off"
                 spellCheck={false}
-                placeholder="เช่น daikin 18000 หรือ 12000"
+                placeholder="เช่น ไดกิ้น 12000 หรือ ติดผนัง 18000"
                 value={filter.q}
                 onChange={e => patch({ q: e.target.value })}
               />
@@ -261,7 +269,11 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
                 <li key={p.id}>
                   <button
                     type="button"
-                    onClick={p.remove}
+                    onClick={() => {
+                      p.remove();
+                      // the last pill takes the whole row (and focus) with it
+                      if (pills.length === 1) focusStatus();
+                    }}
                     aria-label={`เอาตัวกรอง ${p.label} ออก`}
                     className="pressable inline-flex min-h-11 items-center gap-1.5 rounded-full border border-brand/30 bg-sky-soft pl-4 pr-3 text-small font-medium text-brand hover:border-brand"
                   >
@@ -271,7 +283,7 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
                 </li>
               ))}
               <li>
-                <button type="button" onClick={clearAll} className="pressable min-h-11 rounded-full px-3 text-small font-semibold text-brand hover:underline">
+                <button type="button" onClick={clearAllAndFocus} className="pressable min-h-11 rounded-full px-3 text-small font-semibold text-brand hover:underline">
                   ล้างทั้งหมด
                 </button>
               </li>
@@ -288,11 +300,34 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
               <div>
                 <h3 className="text-h3">ไม่พบรุ่นที่ตรงเงื่อนไข</h3>
                 <p className="mt-1 max-w-[34rem] text-ink-2">
-                  ลองเอาตัวกรองบางอย่างออก หรือพิมพ์ยี่ห้อกับขนาดแทน เช่น “daikin 18000” ถ้ายังไม่แน่ใจ ทีมขายช่วยเลือกให้ได้
+                  ลองเอาตัวกรองบางอย่างออก หรือพิมพ์ยี่ห้อกับขนาดแทน ภาษาไทยหรืออังกฤษก็ได้ ถ้ายังไม่แน่ใจ ทีมขายช่วยเลือกให้ได้
                 </p>
               </div>
+              <div className="flex flex-col gap-2">
+                <p id="catalog-examples" className="text-small font-semibold text-ink">
+                  ลองค้นหา
+                </p>
+                <ul aria-labelledby="catalog-examples" className="flex flex-wrap gap-2">
+                  {EXAMPLE_QUERIES.map(x => (
+                    <li key={x}>
+                      <Button
+                        variant="soft"
+                        size="sm"
+                        icon="search"
+                        onClick={() => {
+                          patch({ q: x });
+                          // this block goes away with the results: continue in the search box that now holds the query
+                          document.getElementById(SEARCH_ID)?.focus();
+                        }}
+                      >
+                        {x}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
               <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={clearAll}>
+                <Button variant="secondary" onClick={clearAllAndFocus}>
                   ล้างตัวกรอง
                 </Button>
                 <Button variant="ghost" href="/contact/?topic=buy" icon="chat">
@@ -302,27 +337,33 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
             </Card>
           ) : (
             list.length > 0 && (
-              <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {list.map(m => {
-                  const skus = result.visibleSkus(m);
-                  const picked = pickOf(m, skus);
-                  return (
-                    <li key={m.slug} className="flex min-w-0">
-                      <CatalogCard
-                        m={m}
-                        skus={skus}
-                        picked={picked}
-                        titleId={`card-${m.slug}`}
-                        onPick={k => setPicks(p => ({ ...p, [m.slug]: k.sku }))}
-                        modelHref={k => modelHref(m, k as ListSku)}
-                        seriesHref={seriesPath(m.slug)}
-                        inCompare={inCompare(m.slug, picked.sku)}
-                        onCompare={() => toggleCompare(m, picked)}
-                      />
-                    </li>
-                  );
-                })}
-              </ul>
+              <>
+                <p className="-mb-2 flex items-start gap-2 text-meta text-ink-3">
+                  <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+                  ภาพในรายการเป็นภาพประกอบประเภทแอร์ ไม่ใช่ภาพเครื่องจริง
+                </p>
+                <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {list.map(m => {
+                    const skus = result.visibleSkus(m);
+                    const picked = pickOf(m, skus);
+                    return (
+                      <li key={m.slug} className="flex min-w-0">
+                        <CatalogCard
+                          m={m}
+                          skus={skus}
+                          picked={picked}
+                          titleId={`card-${m.slug}`}
+                          onPick={k => setPicks(p => ({ ...p, [m.slug]: k.sku }))}
+                          modelHref={k => modelHref(m, k as ListSku)}
+                          seriesHref={seriesPath(m.slug)}
+                          inCompare={inCompare(m.slug, picked.sku)}
+                          onCompare={() => toggleCompare(m, picked)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
             )
           )}
 
@@ -347,7 +388,8 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
         description={`${thousands(result.list.length)} ซีรีส์ · ${thousands(result.skuTotal)} รุ่น`}
         footer={
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={clearAll} disabled={facetCount === 0}>
+            {/* aria-disabled, not disabled: pressing it must not drop focus to <body> (UI.md §2) */}
+            <Button variant="ghost" aria-disabled={facetCount === 0 || undefined} onClick={() => facetCount > 0 && clearAll()}>
               ล้าง
             </Button>
             <Button variant="secondary" className="flex-1" onClick={() => setFilterOpen(false)}>
@@ -356,6 +398,10 @@ function CatalogInner({ models, pool, brands }: CatalogProps) {
           </div>
         }
       >
+        {/* the description above is static once read: this line tells screen-reader users what each tap gives */}
+        <p role="status" className="sr-only">
+          พบ {thousands(result.list.length)} ซีรีส์ · {thousands(result.skuTotal)} รุ่น
+        </p>
         <CatalogFilters filter={filter} counts={counts} brands={brands} onChange={onFacet} />
       </Sheet>
 

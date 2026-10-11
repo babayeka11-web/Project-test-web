@@ -1,12 +1,14 @@
 // Company facts for the contact page — every value comes from COMPANY (the single source for header, footer and schema.org).
+// A <dl> whose rows hold only <dt> + <dd> (valid markup); the icon sits inside the <dt>, placed in the row's left gutter.
+// Links wrap anywhere so a long e-mail or URL never pushes a 320px screen sideways.
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { Button, Card, Icon, type IconName } from '@/components/ui';
 import { asset } from '@/lib/site';
 import { COMPANY } from '@/lib/domain/company';
-import { OpenNow } from './OpenNow';
+import { OpenNow } from '@/components/shared/OpenNow';
 
-const link = 'inline-flex min-h-11 items-center gap-1 font-semibold text-brand underline-offset-4 hover:underline';
+const link = 'inline-flex min-h-11 min-w-0 items-center gap-1 font-semibold text-brand underline-offset-4 [overflow-wrap:anywhere] hover:underline';
 
 function ExtLink({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -52,7 +54,7 @@ export function CompanyCard() {
       icon: 'mail',
       label: 'อีเมล',
       body: (
-        <a href={`mailto:${COMPANY.email}`} className={`${link} break-all`}>
+        <a href={`mailto:${COMPANY.email}`} className={link}>
           {COMPANY.email}
         </a>
       ),
@@ -99,14 +101,14 @@ export function CompanyCard() {
       </div>
       <dl className="flex flex-col gap-5">
         {rows.map(r => (
-          <div key={r.label} className="flex gap-4">
-            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-soft text-brand">
-              <Icon name={r.icon} size={20} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <dt className="text-meta text-ink-3">{r.label}</dt>
-              <dd className="m-0 text-body">{r.body}</dd>
-            </div>
+          <div key={r.label} className="relative min-h-10 pl-14">
+            <dt className="text-meta text-ink-3">
+              <span aria-hidden className="absolute left-0 top-0 grid size-10 place-items-center rounded-full bg-sky-soft text-brand">
+                <Icon name={r.icon} size={20} />
+              </span>
+              {r.label}
+            </dt>
+            <dd className="m-0 min-w-0 text-body">{r.body}</dd>
           </div>
         ))}
       </dl>

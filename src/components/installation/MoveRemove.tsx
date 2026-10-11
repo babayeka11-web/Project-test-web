@@ -18,7 +18,7 @@ function RateRow({ title, hint, item }: { title: string; hint?: string; item: Ra
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 sm:justify-end">
         <Price amount={item.ex} unit={item.unit ? `/ ${item.unit}` : undefined} fallback="ประเมินหน้างาน" />
-        <AddToQuote size="sm" label={survey ? 'ขอประเมินหน้างาน' : 'ใส่ใบเสนอราคา'} lines={[installItemLine(item)]} />
+        <AddToQuote size="sm" variant="soft" label={survey ? 'ขอประเมินหน้างาน' : 'ใส่ใบเสนอราคา'} lines={[installItemLine(item)]} />
       </div>
     </li>
   );
@@ -27,9 +27,9 @@ function RateRow({ title, hint, item }: { title: string; hint?: string; item: Ra
 export function MoveRemove({ move, remove, dispose }: { move: Record<InstallType, MoveBand[]>; remove: RateRef[]; dispose: RateRef | null }) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <Card padding="lg" as="section" className="flex min-w-0 flex-col gap-5" aria-labelledby="move-title">
+      <Card padding="lg" as="section" className="flex min-w-0 flex-col gap-5" aria-labelledby="move-card-title">
         <div>
-          <h3 id="move-title" className="text-h3">
+          <h3 id="move-card-title" className="text-h3">
             ย้ายแอร์ไปจุดใหม่
           </h3>
           <p className="mt-1 text-small text-ink-2">ราคารวมรื้อเครื่องเดิมและติดตั้งมาตรฐานที่จุดใหม่ ต่อเครื่อง</p>
@@ -52,9 +52,9 @@ export function MoveRemove({ move, remove, dispose }: { move: Record<InstallType
         />
       </Card>
 
-      <Card padding="lg" as="section" className="flex min-w-0 flex-col gap-5" aria-labelledby="remove-title">
+      <Card padding="lg" as="section" className="flex min-w-0 flex-col gap-5" aria-labelledby="remove-card-title">
         <div>
-          <h3 id="remove-title" className="text-h3">
+          <h3 id="remove-card-title" className="text-h3">
             รื้อแอร์ ไม่ติดตั้งใหม่
           </h3>
           <p className="mt-1 text-small text-ink-2">รื้อเครื่องและเก็บน้ำยากลับคอยล์ร้อน ต่อเครื่อง</p>

@@ -191,10 +191,15 @@ export function AddressPicker({
                     onClick={() => choose(h)}
                   >
                     <span className="min-w-0">
-                      <span className="block truncate font-semibold text-ink">{p.title}</span>
-                      <span className="block truncate text-meta text-ink-3">{p.sub}</span>
+                      {/* wrap instead of cutting: the province and postcode at the end are what tell options apart */}
+                      <span className="block font-semibold text-ink [overflow-wrap:anywhere]">{p.title}</span>
+                      <span className="block text-meta text-ink-3 [overflow-wrap:anywhere]">{p.sub}</span>
                     </span>
-                    {z && zoneChip(z) && <Badge tone={z.tier === 'core' ? 'ok' : z.tier === 'extended' ? 'sky' : 'warn'}>{zoneChip(z)}</Badge>}
+                    {z && zoneChip(z) && (
+                      <Badge tone={z.tier === 'core' ? 'ok' : z.tier === 'extended' ? 'sky' : 'warn'} className="shrink-0">
+                        {zoneChip(z)}
+                      </Badge>
+                    )}
                   </li>
                 );
               })}

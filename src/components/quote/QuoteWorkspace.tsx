@@ -2,13 +2,15 @@
 // The working part of the quotation page: lines + area on the left, the sticky totals on the right (below on phones).
 // Hydration-safe: the quote lives in localStorage, so the server HTML and the first client render are a skeleton.
 // Also owns the print sheet: "พิมพ์" shows only this part, with the company facts and the date, always on light colours.
-import { useEffect, useId } from 'react';
+// When the last line goes (ลบ, ล้างเลย) the empty state takes keyboard focus, so it never drops to <body>, and offers
+// "เลิกทำ" right after its heading when that removal emptied the quote.
+import { useEffect, useId, useRef, useState } from 'react';
 import { AddressPicker } from '@/components/shared/AddressPicker';
 import { Button, Card, Icon, Skeleton } from '@/components/ui';
 import { useCart } from '@/lib/cart';
 import { COMPANY } from '@/lib/domain/company';
 import { NOTES } from '@/lib/domain/constants';
-import { QuoteLines } from './QuoteLines';
+import { countId, QuoteLines, takeEmptiedUndo, undoRemoval } from './QuoteLines';
 import { QuoteTotals } from './QuoteTotals';
 import { areaText, todayTh } from './quote-model';
 import { useHydrated } from './use-hydrated';
@@ -67,14 +69,29 @@ function WorkspaceSkeleton() {
   );
 }
 
-function EmptyQuote() {
+/** `focus`: the quote just turned empty — take keyboard focus on the heading. `onUndo`: put back what was removed. */
+function EmptyQuote({ focus, onUndo }: { focus: boolean; onUndo?: () => void }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!focus) return;
+    const frame = requestAnimationFrame(() => headingRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [focus]);
+
   return (
     <Card padding="lg" className="mx-auto flex max-w-2xl flex-col items-center gap-5 text-center">
       <span aria-hidden className="grid size-16 place-items-center rounded-full bg-sky-soft text-brand">
         <Icon name="quote" size={30} />
       </span>
-      <div className="flex flex-col gap-2">
-        <h3 className="text-h3">ยังไม่มีรายการในใบเสนอราคา</h3>
+      <div className="flex flex-col items-center gap-2">
+        <h3 ref={headingRef} tabIndex={-1} className="text-h3 outline-none">
+          ยังไม่มีรายการในใบเสนอราคา
+        </h3>
+        {onUndo && (
+          <Button variant="ghost" size="sm" onClick={onUndo}>
+            เลิกทำ
+          </Button>
+        )}
         <p className="mx-auto max-w-md text-ink-2">เลือกบริการหรือแอร์ที่สนใจ แล้วกดใส่ใบเสนอราคา ราคาก่อน VAT และค่าเดินทางจะคิดให้ทันที</p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
@@ -119,8 +136,24 @@ export function QuoteWorkspace() {
   const titleId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   useLightWhilePrinting();
 
+  // the quote just turned empty (from > 0 lines): { undo } = a removal here emptied it and can be put back
+  const before = useRef(0);
+  const [emptied, setEmptied] = useState<{ undo: boolean } | null>(null);
+  useEffect(() => {
+    const was = before.current;
+    before.current = lines.length;
+    if (was > 0 && lines.length === 0) setEmptied({ undo: takeEmptiedUndo() });
+    else if (lines.length > 0) setEmptied(null);
+  }, [lines.length]);
+
+  const undo = () => {
+    undoRemoval();
+    // the lines are back in place of the empty state: continue from the count at the top of the list
+    requestAnimationFrame(() => document.getElementById(countId(`q${titleId}`))?.focus());
+  };
+
   if (!hydrated) return <WorkspaceSkeleton />;
-  if (lines.length === 0) return <EmptyQuote />;
+  if (lines.length === 0) return <EmptyQuote focus={!!emptied} onUndo={emptied?.undo ? undo : undefined} />;
 
   return (
     <>

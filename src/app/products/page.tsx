@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Accordion, Button, Card, CtaBand, Icon, Section, Stat, StatGroup, type IconName } from '@/components/ui';
 import { Catalog } from '@/components/catalog/Catalog';
+import { RelatedGuides } from '@/components/knowledge/RelatedGuides';
 import { catalogForList } from '@/components/catalog/catalog-data';
 import { seriesPath } from '@/components/catalog/slug';
 import { INCLUDED_PIPE_M, INSTALL_WARRANTY } from '@/lib/domain/install';
@@ -51,10 +52,13 @@ export default function ProductsPage() {
         title="แอร์ทุกรุ่น ดูราคาได้ทันที"
         lead={`${thousands(total)} รุ่นจาก ${sold.length} ยี่ห้อ ราคาเครื่องก่อน VAT พร้อมราคาติดตั้งมาตรฐาน เลือกขนาด เทียบรุ่น แล้วใส่ใบเสนอราคาได้เลย`}
         actions={
-          <Button href="#catalog" variant="primary" icon="search">
+          // on phones the search box is already on the first screen (the aside is hidden there), so no jump button
+          <Button href="#catalog" variant="primary" icon="search" className="max-md:hidden">
             ค้นหารุ่น
           </Button>
         }
+        // the lead already says how many models and brands: phones go straight to the search box
+        asideOnPhone="hide"
         aside={
           <Card padding="md">
             <StatGroup columns={3}>
@@ -62,10 +66,6 @@ export default function ProductsPage() {
               <Stat value={thousands(models.length)} label="ซีรีส์" />
               <Stat value={String(sold.length)} label="ยี่ห้อ" />
             </StatGroup>
-            <p className="mt-4 flex items-start gap-2 text-small text-ink-2">
-              <Icon name="info" size={18} className="mt-1 shrink-0 text-sky" />
-              <span>ภาพในรายการเป็นภาพประกอบประเภทแอร์ ไม่ใช่ภาพเครื่องจริง</span>
-            </p>
           </Card>
         }
       />
@@ -124,13 +124,15 @@ export default function ProductsPage() {
         />
       </Section>
 
+      <RelatedGuides page="/products/" tone="soft" />
+
       <CtaBand
         id="help"
         title="ไม่แน่ใจว่าควรเลือกกี่ BTU"
         lead="บอกขนาดห้องและการใช้งาน ทีมขายช่วยเลือกขนาดและรุ่นให้ หรือลองคำนวณเบื้องต้นเองก่อนก็ได้"
         actions={
           <>
-            <Button href="/knowledge/" variant="primary" icon="thermometer">
+            <Button data-page-cta href="/knowledge/" variant="primary" icon="thermometer">
               หาขนาด BTU ที่เหมาะ
             </Button>
             <Button href="/contact/?topic=buy" variant="secondary" icon="chat">

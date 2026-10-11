@@ -3,7 +3,8 @@
 // argument (pricebook.getCatalog() or getCatalogLite() on the server → prop), so nothing here embeds the Pricebook.
 // Search: the reference matched the whole query (spaces, commas, '-' and '/' removed) inside one haystack of series +
 // brand + type + sku codes + BTU numbers, so '12000' and '12,000' work. Added here: a multi-word query matches when every
-// word matches ('daikin 12000'), '12k' also means 12000, and the words 'btu' / 'แอร์' are ignored.
+// word matches ('daikin 12000'), '12k' also means 12000, the words 'btu' / 'แอร์' are ignored, and brand names typed in
+// Thai ('ไดกิ้น', 'มิตซู') or 'อินเวอร์เตอร์' find the same series (BRAND_ALIASES — search text only).
 import { typeOrder, TYPE_BY_ID, type AcTypeId } from './types';
 
 export type SkuSpec = {
@@ -104,9 +105,46 @@ function skuMatches(sku: SkuLite, f: Pick<CatalogFilter, 'btu' | 'price'>): bool
 const squash = (s: string) => s.toLowerCase().replace(/[,\s\-/]/g, '');
 const IGNORED_WORDS = new Set(['btu', 'บีทียู', 'แอร์']);
 
-/** The searchable text of a series (same haystack as the reference). */
-export const haystack = (m: Pick<CatalogSeriesLite, 'series' | 'brandName' | 'type' | 'skus'>): string =>
-  squash(m.series + m.brandName + (TYPE_BY_ID[m.type]?.th ?? '') + m.skus.map(s => s.sku + s.btu).join(''));
+/** How people write each brand in Thai, keyed by the exact brandName in the catalog data. Search text only: nothing here
+ *  is shown, and it never touches prices or rules. 'มิตซูบิชิ' / 'มิตซู' are part of both Mitsubishi names, so they
+ *  find both brands. */
+export const BRAND_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  Daikin: ['ไดกิ้น', 'ไดกิน'],
+  Carrier: ['แคเรียร์', 'แคเรีย'],
+  'Mitsubishi Electric': ['มิตซูบิชิ', 'มิตซู'],
+  'Mitsubishi Heavy Duty': ['มิตซูบิชิเฮฟวี่', 'มิตซูเฮฟวี่'],
+  Samsung: ['ซัมซุง'],
+  LG: ['แอลจี'],
+  Panasonic: ['พานาโซนิค'],
+  Sharp: ['ชาร์ป'],
+  Haier: ['ไฮเออร์'],
+  Hisense: ['ไฮเซนส์'],
+  Hitachi: ['ฮิตาชิ'],
+  Fujitsu: ['ฟูจิตสึ'],
+  Gree: ['กรี'],
+  Midea: ['ไมเดีย', 'มีเดีย'],
+  TCL: ['ทีซีแอล'],
+  York: ['ยอร์ค'],
+  'Saijo Denki': ['ไซโจ', 'ไซโจเดนกิ'],
+  'Central Air': ['เซ็นทรัลแอร์'],
+  AUX: ['ออกซ์'],
+  Casper: ['แคสเปอร์'],
+  Eminent: ['อีมิเนนท์'],
+  Mavell: ['มาเวล'],
+};
+/** Added to the search text of Inverter series. */
+const INVERTER_ALIAS = 'อินเวอร์เตอร์';
+
+/** The searchable text of a series (the reference haystack + the Thai brand spellings). */
+export const haystack = (m: Pick<CatalogSeriesLite, 'series' | 'brandName' | 'type' | 'skus'> & { inverter?: boolean }): string =>
+  squash(
+    m.series +
+      m.brandName +
+      (BRAND_ALIASES[m.brandName] ?? []).join('') +
+      (m.inverter ? INVERTER_ALIAS : '') +
+      (TYPE_BY_ID[m.type]?.th ?? '') +
+      m.skus.map(s => s.sku + s.btu).join(''),
+  );
 
 /** Does the query match this haystack? Whole query first (reference), then every word on its own. */
 export function textMatches(hay: string, q: string): boolean {

@@ -1,7 +1,8 @@
 'use client';
 // The totals card of the quotation: lines total, travel, the small-visit minimum, total before VAT, VAT 7 % and the grand
 // total — all from useCart().totals (quoteTotals), never recomputed here. The grand total sits in an aria-live region.
-// Under it: the honest notes (estimate · cleaning minimum · surveys · volume · out of area), copy summary and print.
+// Under it: the honest notes (estimate · cleaning minimum · surveys · volume · out of area), the next step (orange: fill in
+// the request form), copy summary and print.
 import type { ReactNode } from 'react';
 import { Button, Card, Icon, Notice, Price, toast, type IconName } from '@/components/ui';
 import { useCart } from '@/lib/cart';
@@ -47,7 +48,7 @@ export function QuoteTotals() {
 
       {onlySurveys ? (
         <Notice tone="info" size="sm" title="รายการนี้ทีมประเมินหน้างาน">
-          ยังไม่มีราคามาตรฐานให้รวมยอด ส่งคำขอแล้วทีมแจ้งราคาก่อนเริ่มงาน
+          ยังไม่มีราคามาตรฐานให้รวมยอด ส่งสรุปให้ทีม แล้วทีมแจ้งราคาก่อนเริ่มงาน
         </Notice>
       ) : (
         <>
@@ -101,8 +102,9 @@ export function QuoteTotals() {
         </ul>
       )}
 
-      <div className="flex flex-col gap-3 print:hidden">
-        <Button href="#request" variant="secondary" icon="send" fullWidth>
+      {/* the orange action of this view; data-page-cta lets the header's booking button step back (UI.md §2) */}
+      <div data-page-cta className="flex flex-col gap-3 print:hidden">
+        <Button href="#request" icon="send" fullWidth>
           กรอกข้อมูลส่งคำขอ
         </Button>
         <div className="grid grid-cols-2 gap-3">

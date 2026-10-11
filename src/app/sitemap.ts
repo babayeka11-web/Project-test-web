@@ -12,6 +12,7 @@ const MAIN: readonly [path: string, priority: number][] = [
   ['/cleaning/', 0.9],
   ['/installation/', 0.9],
   ['/repair/', 0.9],
+  ['/trade-in/', 0.7],
   ['/products/', 0.9],
   ['/business/', 0.8],
   ['/prices/', 0.8],

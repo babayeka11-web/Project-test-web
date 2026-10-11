@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Button, Card, CtaBand, Icon, PageHeader, Price, Section } from '@/components/ui';
+import { Button, Card, CtaBand, Icon, Notice, PageHeader, Price, Section } from '@/components/ui';
 import { RepairPriceList } from '@/components/repair/RepairPriceList';
 import { RepairSteps, type DiagFee } from '@/components/repair/RepairSteps';
 import { SymptomChecker } from '@/components/repair/SymptomChecker';
@@ -75,6 +75,18 @@ export default function RepairPage() {
         lead="ตอบไม่กี่ข้อ ก็เห็นจุดที่ช่างน่าจะตรวจ งานซ่อมที่เกี่ยวข้อง และราคามาตรฐานก่อน VAT"
       >
         <SymptomChecker rows={checkerRows} />
+        <Notice
+          tone="info"
+          title="เครื่องอายุมากหรือซ่อมบ่อย"
+          className="mt-8"
+          action={
+            <Button href="/trade-in/" variant="ghost" size="sm">
+              เทียบซ่อมหรือเปลี่ยน
+            </Button>
+          }
+        >
+          ดูค่าซ่อมเทียบกับเครื่อง Inverter ใหม่ขนาดเดียวกัน และมูลค่าเทิร์นเครื่องเดิม ก่อนตัดสินใจ
+        </Notice>
       </Section>
 
       <Section
@@ -102,7 +114,7 @@ export default function RepairPage() {
         lead="ทีมช่างตอบในเวลาทำการ ช่วยดูว่าควรให้ช่างเข้าตรวจหรือเช็กเบื้องต้นด้วยตัวเองก่อน"
         actions={
           <>
-            <Button href="/quote/#request" icon="calendar" size="lg">
+            <Button data-page-cta href="/quote/#request" icon="calendar" size="lg">
               จองช่าง
             </Button>
             <Button href={COMPANY.telHref} variant="secondary" icon="phone" size="lg">

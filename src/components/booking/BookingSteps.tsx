@@ -28,7 +28,7 @@ import { COMPANY } from '@/lib/domain/company';
 import { NOTES } from '@/lib/domain/constants';
 import { TIME_NOTE, timeTh } from '@/lib/domain/content';
 import { baht } from '@/lib/domain/format';
-import { addDays, dateHint, dateTh, RUSH_FEE_EX, SLOTS, type BkkNow, type SlotId } from '@/lib/domain/queue';
+import { addDays, dateHint, dateTh, isOpen, RUSH_FEE_EX, SLOTS, type BkkNow, type SlotId } from '@/lib/domain/queue';
 import { Step } from './Step';
 
 /* ---------- step 1 · which air-cons ---------- */
@@ -238,6 +238,9 @@ export function WhenStep({
   const hint = now ? dateHint(date, q.rush, now) : null;
   const pick = (d: string) => onDate(date === d ? '' : d);
   const hasTime = q.units > 0 && when.time[1] > 0;
+  const tomorrow = now ? addDays(now.date, 1) : '';
+  // a day the company is closed says so instead of offering it as a plain rush slot (the rush fee in the total stays)
+  const quickDay = (name: string, iso: string) => (isOpen(iso) ? `${name} · คิวด่วน +${rush}` : `${name} · วันหยุด (งานนอกเวลา)`);
   return (
     <Step id="qb-s3" n={3} title="ที่ไหน · เมื่อไร" hint="บอกพื้นที่เพื่อคิดค่าเดินทาง และเลือกวันที่สะดวก ทีมโทรยืนยันคิวอีกครั้ง">
       <div className="grid grid-cols-1 gap-8">
@@ -251,10 +254,10 @@ export function WhenStep({
             {now && (
               <>
                 <Chip selected={date === now.date} onClick={() => pick(now.date)}>
-                  วันนี้ · คิวด่วน +{rush}
+                  {quickDay('วันนี้', now.date)}
                 </Chip>
-                <Chip selected={date === addDays(now.date, 1)} onClick={() => pick(addDays(now.date, 1))}>
-                  พรุ่งนี้ · คิวด่วน +{rush}
+                <Chip selected={date === tomorrow} onClick={() => pick(tomorrow)}>
+                  {quickDay('พรุ่งนี้', tomorrow)}
                 </Chip>
                 <Chip selected={date === when.earliest} onClick={() => pick(when.earliest)}>
                   เร็วสุดแบบจองปกติ · {dateTh(when.earliest)}
