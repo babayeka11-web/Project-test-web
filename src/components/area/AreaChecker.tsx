@@ -1,7 +1,7 @@
 'use client';
 // "ตรวจพื้นที่ของคุณ": the shared address field (it also sets the quote's area) + quick example places + a plain summary
 // of what the pick means for travel. Everything comes from the zone the domain layer computed — no number is typed here.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AddressPicker } from '@/components/shared/AddressPicker';
 import { Badge, Button, Card, Chip, Icon, Price } from '@/components/ui';
 import { cart, useCart } from '@/lib/cart';
@@ -97,8 +97,14 @@ export function AreaChecker() {
   const { addr, zone } = useCart();
   const [busy, setBusy] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  // a ref as well as state: a second press before React re-renders is ignored too
+  const busyRef = useRef(false);
 
   const pickExample = async (name: string) => {
+    // the chips stay enabled while the address book loads (disabling the pressed chip would drop keyboard focus to
+    // <body>); a press during loading is simply ignored
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(name);
     setFailed(false);
     try {
@@ -111,6 +117,7 @@ export function AreaChecker() {
     } catch {
       setFailed(true);
     } finally {
+      busyRef.current = false;
       setBusy(null);
     }
   };
@@ -122,9 +129,9 @@ export function AreaChecker() {
         <p id="area-examples" className="mb-3 text-small font-semibold text-ink">
           หรือลองพื้นที่ตัวอย่าง
         </p>
-        <div role="group" aria-labelledby="area-examples" className="flex flex-wrap gap-2">
+        <div role="group" aria-labelledby="area-examples" aria-busy={busy !== null} className="flex flex-wrap gap-2">
           {EXAMPLES.map(name => (
-            <Chip key={name} selected={!!addr && (addr.s === name || addr.d === name)} disabled={busy !== null} onClick={() => pickExample(name)}>
+            <Chip key={name} selected={!!addr && (addr.s === name || addr.d === name)} onClick={() => pickExample(name)}>
               {name}
             </Chip>
           ))}

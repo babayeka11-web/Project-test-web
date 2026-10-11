@@ -9,7 +9,7 @@ import { NOTES } from '@/lib/domain/constants';
 import { cleanFrom, serviceFrom } from '@/lib/domain/pricebook';
 
 export const metadata: Metadata = {
-  title: 'ค่าบริการทั้งหมด',
+  title: 'ราคาล้าง ติดตั้ง ซ่อมแอร์ ทุกรายการ ก่อน VAT',
   description:
     'ราคามาตรฐานก่อน VAT ของงานล้าง ติดตั้ง ซ่อม รื้อ ย้ายแอร์ วัสดุและอุปกรณ์ ค้นหาได้ทุกรายการ ดูสิ่งที่รวมและไม่รวม แล้วใส่ใบเสนอราคาได้ทันที',
   alternates: { canonical: './' },
@@ -43,6 +43,9 @@ export default function PricesPage() {
           </>
         }
         meta={NOTES.source}
+        // the starting prices are the first rows of each tab below, and the tabs replace the quick links: phones go
+        // straight to the search box
+        asideOnPhone="hide"
         aside={
           <Card padding="md">
             <p className="text-small font-semibold text-ink">ราคาเริ่มต้นต่อเครื่อง</p>
@@ -66,20 +69,23 @@ export default function PricesPage() {
         }
       />
 
-      <Section id="rules" eyebrow="ก่อนดูราคา" title="4 ข้อที่ใช้กับทุกใบเสนอราคา" lead="ราคาแต่ละรายการอยู่ในตารางด้านล่าง ส่วนค่าใช้จ่ายของการเข้าหน้างานคิดตามกติกาเหล่านี้">
-        <RuleCards />
-      </Section>
+      {/* phones: the search and the list first, the rules right after it (still on the page, in the same order on wider screens) */}
+      <div className="flex flex-col">
+        <Section id="rules" className="max-md:order-2" eyebrow="ก่อนดูราคา" title="4 ข้อที่ใช้กับทุกใบเสนอราคา" lead="ราคาแต่ละรายการอยู่ในรายการราคา ส่วนค่าใช้จ่ายของการเข้าหน้างานคิดตามกติกาเหล่านี้">
+          <RuleCards />
+        </Section>
 
-      <Section id="price-list" tone="soft" eyebrow="รายการราคา" title="ค้นหาและเลือกรายการ" lead="เลือกหมวด หรือพิมพ์ค้นหาข้ามทุกหมวด ปุ่ม ‘ใส่ใบเสนอราคา’ เก็บรายการไว้ให้ทีมตรวจและยืนยันราคา">
-        <PriceCenter rows={data.rows} pool={data.pool} />
-      </Section>
+        <Section id="price-list" tone="soft" title="ค้นหาและเลือกรายการ" lead="พิมพ์ค้นหาได้ทุกหมวด ปุ่ม ‘ใส่ใบเสนอราคา’ เก็บรายการไว้ให้ทีมตรวจและยืนยันราคา">
+          <PriceCenter rows={data.rows} pool={data.pool} />
+        </Section>
+      </div>
 
       <CtaBand
         title="ไม่แน่ใจว่าต้องใช้รายการไหน"
         lead="ส่งรายการที่เลือกให้ทีมตรวจ หรือเล่าอาการ ขนาดห้อง และที่อยู่ ทีมช่วยเลือกให้ในใบเสนอราคา"
         actions={
           <>
-            <Button href="/quote/" variant="primary" size="lg" icon="quote">
+            <Button data-page-cta href="/quote/" variant="primary" size="lg" icon="quote">
               ดูใบเสนอราคา
             </Button>
             <Button href="/contact/" variant="secondary" size="lg" icon="chat">

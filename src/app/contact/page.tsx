@@ -9,7 +9,7 @@ import { COMPANY } from '@/lib/domain/company';
 import { PROCESS } from '@/lib/domain/content';
 
 export const metadata: Metadata = {
-  title: 'ติดต่อเรา',
+  title: `ติดต่อทีมช่างแอร์ สหบูรพากรุ๊ป · โทร ${COMPANY.tel}`,
   description: `ติดต่อ ${COMPANY.th} โทร ${COMPANY.tel} ทาง LINE ${COMPANY.line} หรือฝากข้อความ ทีมติดต่อกลับในเวลาทำการ ${COMPANY.hours}`,
   alternates: { canonical: './' },
 };
@@ -44,7 +44,7 @@ export default function ContactPage() {
         }
       />
 
-      <Section id="reach" title="ข้อมูลบริษัทและฝากข้อความ" lead="เลือกช่องทางที่สะดวก หรือกรอกฟอร์ม หลังกดส่งจะได้สรุปคำขอพร้อมเลขอ้างอิงไว้เก็บ">
+      <Section id="reach" title="ข้อมูลบริษัทและฝากข้อความ" lead="เลือกช่องทางที่สะดวก หรือกรอกฟอร์มสั้น ๆ แล้วได้สรุปพร้อมเลขอ้างอิงไว้ส่งต่อให้ทีม">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-10">
           <CompanyCard />
           <div id="form" className="flex min-w-0 scroll-mt-header flex-col gap-4">

@@ -276,3 +276,16 @@ export const GUIDES: readonly Guide[] = [
 ];
 
 export const guideBySlug = (slug: string): Guide | undefined => GUIDES.find(g => g.slug === slug);
+
+/** Guides linked from the page where that decision is made ("อ่านก่อนตัดสินใจ"), keyed by route ('model' = every
+ *  /products/[slug]/[model]/ page). Unknown slugs are dropped, so a renamed guide can never leave a dead link. */
+export const RELATED_GUIDES: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+  Object.entries({
+    '/cleaning/': ['clean', 'c1c2', 'packages'],
+    '/installation/': ['install', 'place', 'btu'],
+    '/business/': ['contract', 'docs', 'vrf'],
+    '/area/': ['area'],
+    '/products/': ['btu', 'types', 'inverter'],
+    model: ['btu', 'inverter', 'install'],
+  }).map(([page, slugs]) => [page, slugs.filter(s => guideBySlug(s))]),
+);

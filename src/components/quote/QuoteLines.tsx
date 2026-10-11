@@ -1,7 +1,8 @@
 'use client';
 // The quotation lines, grouped (สินค้า · ล้างแอร์ · ติดตั้ง · ซ่อม · งานเสริม · สัญญา · ขอประเมิน · คิวด่วน). Each line shows its
 // name, detail, unit price before VAT (or ประเมินหน้างาน), a quantity stepper (not for fixed lines), the line amount and
-// "ลบ". "ล้างทั้งหมด" asks inline first; both removals offer "เลิกทำ" in the toast. Focus never gets lost after a removal.
+// "ลบ". "ล้างทั้งหมด" asks inline first; both removals offer "เลิกทำ" in the toast (and in the empty state when the removal
+// emptied the quote — QuoteWorkspace). Focus never gets lost after a removal.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Icon, IconButton, Price, Stepper, toast } from '@/components/ui';
 import { cart, MAX_QTY, useCart, type CartLine, type CartLineInput } from '@/lib/cart';
@@ -20,6 +21,32 @@ const rmId = (id: string) => `quote-rm-${id}`;
 // Undo stays until closed: the toast region is last in the page, so a keyboard user needs far more than a few seconds
 // to Tab to "เลิกทำ". One id, so a newer removal replaces the older undo instead of stacking.
 const UNDO = { id: 'quote-undo', duration: 0 } as const;
+
+// What the last removal took away, shared by the toast's "เลิกทำ" and the empty state's. `emptied`: that removal left no
+// line of the customer's own (a คิวด่วน line alone goes with it), so the empty state that follows may offer the undo.
+let lastRemoval: { lines: CartLineInput[]; emptied: boolean } | null = null;
+
+const remember = (lines: CartLineInput[]) => {
+  lastRemoval = { lines, emptied: !cart.get().lines.some(l => l.group !== 'rush') };
+};
+
+/** Put back what the last removal took away (same lines, merged by the store's usual rules) and close its toast. */
+export function undoRemoval(): void {
+  const back = lastRemoval;
+  lastRemoval = null;
+  toast.dismiss(UNDO.id);
+  if (back) cart.addMany(back.lines);
+}
+
+/** Read once when the quote turns empty: true when a removal here emptied it (and its undo is still available). */
+export function takeEmptiedUndo(): boolean {
+  if (!lastRemoval?.emptied) return false;
+  lastRemoval = { ...lastRemoval, emptied: false };
+  return true;
+}
+
+/** id of the "N รายการ" line at the top of the list (focusable by script), for a given titleId. */
+export const countId = (titleId: string) => `${titleId}-count`;
 
 export function QuoteLines({ titleId }: { titleId: string }) {
   const { lines, totals } = useCart();
@@ -44,7 +71,8 @@ export function QuoteLines({ titleId }: { titleId: string }) {
     const prev = cart.get().lines.map(strip);
     setConfirming(false);
     cart.clear();
-    toast('ล้างรายการในใบเสนอราคาแล้ว', { ...UNDO, action: { label: 'เลิกทำ', onClick: () => cart.addMany(prev) } });
+    remember(prev);
+    toast('ล้างรายการในใบเสนอราคาแล้ว', { ...UNDO, action: { label: 'เลิกทำ', onClick: undoRemoval } });
   };
 
   const removeLine = (l: CartLine) => {
@@ -52,7 +80,8 @@ export function QuoteLines({ titleId }: { titleId: string }) {
     const removable = (x: CartLine | undefined) => !!x && x.group !== 'rush';
     const next = flat.slice(i + 1).find(removable) ?? flat.slice(0, i).reverse().find(removable);
     cart.remove(l.id);
-    toast(`ลบ “${l.name}” แล้ว`, { ...UNDO, action: { label: 'เลิกทำ', onClick: () => cart.add(strip(l)) } });
+    remember([strip(l)]);
+    toast(`ลบ “${l.name}” แล้ว`, { ...UNDO, action: { label: 'เลิกทำ', onClick: undoRemoval } });
     requestAnimationFrame(() => {
       const el = next ? document.getElementById(rmId(next.id)) : null;
       if (el) el.focus();
@@ -64,7 +93,7 @@ export function QuoteLines({ titleId }: { titleId: string }) {
     <div className="@container min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card print:rounded-none print:border-0 print:shadow-none">
       {/* header: count + clear all */}
       <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-5 py-3 sm:px-7">
-        <p ref={headRef} tabIndex={-1} className="text-small text-ink-2">
+        <p ref={headRef} id={countId(titleId)} tabIndex={-1} className="text-small text-ink-2">
           <b className="text-ink">{lines.length} รายการ</b>
           {totals.units > 0 && <> · {totals.units} เครื่อง</>}
           <span className="sr-only"> ในใบเสนอราคา</span>
@@ -169,7 +198,15 @@ function LineRow({ line: l, onRemove }: { line: CartLine; onRemove: () => void }
         {rush && (
           <p className="mt-1 text-meta text-ink-2">
             เปลี่ยนวันเข้างานเป็นวันจองปกติเพื่อยกเลิก ·{' '}
-            <a href="#quote-date" className="font-medium text-brand underline">
+            {/* the date field may sit in the request form's folded part: open it so the jump lands on the field */}
+            <a
+              href="#quote-date"
+              className="font-medium text-brand underline"
+              onClick={() => {
+                const fold = document.getElementById('quote-date')?.closest('details');
+                if (fold) fold.open = true;
+              }}
+            >
               เปลี่ยนวัน
             </a>
           </p>

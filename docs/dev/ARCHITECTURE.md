@@ -121,10 +121,12 @@ keyboard. No horizontal page scroll at 360–1440 px (wide tables scroll inside 
 
 ## 7. Forms and requests
 
-There is no backend yet. A request (contact form, quote, booking) builds a clear Thai summary with a reference number and
-offers honest hand-off: **copy summary · send via LINE (`lineMessageUrl`) · call · e-mail**. If
-`NEXT_PUBLIC_FORM_ENDPOINT` is set, POST JSON there first and show "ส่งถึงทีมแล้ว" **only** on a 2xx answer; any failure
-falls back to the hand-off box with a plain explanation. Every form shows the PDPA line
+A request (contact form, quote, booking) builds a clear Thai summary with a reference number and offers honest hand-off:
+**copy summary · send via LINE (`lineMessageUrl`) · call · e-mail**. The optional backend is a Google Sheets + Apps Script
+web app (`backend/`, set up with `backend/README.md`; the build reads its URL from the `FORM_ENDPOINT` repository variable
+as `NEXT_PUBLIC_FORM_ENDPOINT`). When set, the request is POSTed first (JSON as `text/plain`, no CORS preflight) and
+"ส่งถึงทีมแล้ว" shows **only** when the answer confirms it: a 2xx that is not `{ok:false}`, and for Apps Script exactly
+`{ok:true, ref}` for this reference. Anything else falls back to the hand-off box with a plain explanation. Every form shows the PDPA line
 "ข้อมูลที่กรอกใช้เพื่อติดต่อกลับเรื่องคำขอนี้เท่านั้น" and has a hidden honeypot field.
 
 ## 8. Working locally (parallel agents)

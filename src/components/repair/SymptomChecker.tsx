@@ -2,9 +2,11 @@
 // "เลือกอาการที่พบ" — the repair triage. Pick a symptom (or describe it in your own words), see whether it can be normal,
 // what the owner can safely check, answer a few quick questions and read the likely faulty points with the standard
 // Pricebook repair lines. Nothing here promises a fix: the result is a first estimate the technician confirms on site.
+// The most likely cause leads, the rest fold away; on phones an ActionDock keeps "จองช่าง" in reach next to the result.
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, Card, Checkbox, Field, Fieldset, Icon, Input, Notice, Price, Radio, toast, type IconName } from '@/components/ui';
+import { AccordionItem, Badge, Button, Card, Checkbox, Field, Fieldset, Icon, Input, Notice, Price, Radio, toast, type IconName } from '@/components/ui';
+import { ActionDock } from '@/components/shared/ActionDock';
 import { AddToQuote } from '@/components/shared/AddToQuote';
 import { cart, useCart, type CartLineInput } from '@/lib/cart';
 import { COMPANY, lineMessageUrl } from '@/lib/domain/company';
@@ -206,6 +208,8 @@ function SymptomPanel({ s, rows }: { s: Symptom; rows: RepairRow[] }) {
   const { lines: cartLines } = useCart();
   const panelRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const [answers, setAnswers] = useState<Answers>({});
   const [picked, setPicked] = useState<readonly string[]>([]);
 
@@ -343,7 +347,7 @@ function SymptomPanel({ s, rows }: { s: Symptom; rows: RepairRow[] }) {
             ))}
           </section>
 
-          <section aria-labelledby={`${uid}-r`} className="-mx-2 flex flex-col gap-5 rounded-card bg-surface-2 p-3 sm:mx-0 sm:p-6">
+          <section ref={resultRef} aria-labelledby={`${uid}-r`} className="-mx-2 flex flex-col gap-5 rounded-card bg-surface-2 p-3 sm:mx-0 sm:p-6">
             <div className="flex flex-col gap-1">
               <h4 id={`${uid}-r`} className="text-body font-semibold">
                 {d.answered ? 'จุดที่น่าจะเป็น' : 'จุดที่พบบ่อยของอาการนี้'}
@@ -367,11 +371,22 @@ function SymptomPanel({ s, rows }: { s: Symptom; rows: RepairRow[] }) {
               </Notice>
             )}
 
+            {/* the most likely cause first; the others stay one tap away */}
             <ol className="grid gap-3">
-              {d.causes.map((c, i) => (
+              {d.causes.slice(0, 1).map((c, i) => (
                 <CauseItem key={c.id} c={c} index={i} lead={d.answered && i === 0 && c.score > 0} />
               ))}
             </ol>
+            {d.causes.length > 1 && (
+              <AccordionItem variant="card" title={`ดูสาเหตุอื่นอีก ${d.causes.length - 1} ข้อ`}>
+                {/* -mr-8: the accordion's right gutter is for text answers; the cause cards use the full width */}
+                <ol start={2} className="-mr-8 grid gap-3">
+                  {d.causes.slice(1).map((c, i) => (
+                    <CauseItem key={c.id} c={c} index={i + 1} lead={false} />
+                  ))}
+                </ol>
+              </AccordionItem>
+            )}
 
             {d.clean && !topNormal && (
               <Notice
@@ -445,7 +460,7 @@ function SymptomPanel({ s, rows }: { s: Symptom; rows: RepairRow[] }) {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div ref={actionsRef} data-page-cta className="flex flex-wrap items-center gap-3">
                   <Button type="button" icon="calendar" onClick={book}>
                     จองช่าง
                   </Button>
@@ -464,6 +479,25 @@ function SymptomPanel({ s, rows }: { s: Symptom; rows: RepairRow[] }) {
             <Notice tone="info" size="sm" icon="info">
               ผลประเมินเบื้องต้นจากอาการ ช่างยืนยันหน้างานก่อนซ่อม และไม่ซ่อมก่อนลูกค้าอนุมัติราคา
             </Notice>
+
+            {diag && (
+              <ActionDock
+                watch={resultRef}
+                hideWhen={actionsRef}
+                label="รวมที่เลือกและจองช่าง"
+                summary={
+                  <span className="flex flex-col">
+                    <span className="text-meta text-ink-3">รวมที่เลือก</span>
+                    <Price amount={sumEx} size="sm" tone="brand" />
+                  </span>
+                }
+                action={
+                  <Button size="sm" icon="calendar" onClick={book}>
+                    จองช่าง
+                  </Button>
+                }
+              />
+            )}
 
             <Disclosure title="ถ่ายรูปหรือวิดีโอไว้ ช่างเตรียมตัวได้ตรงขึ้น">
               <ul className="grid gap-2 text-small text-ink-2">

@@ -10,6 +10,8 @@ export type Hero3DProps = {
   onReady?: () => void;
   /** Called when WebGL cannot start or the context is lost (the hero keeps the still illustration). */
   onFail?: () => void;
+  /** The visitor's pause button: holds the unit still, like prefers-reduced-motion (dragging still turns it). */
+  paused?: boolean;
 };
 
 /** The sky colour of the current theme (--color-sky), used for the air wisps. */
@@ -34,10 +36,13 @@ function hasWebGL(): boolean {
   }
 }
 
-export default function Hero3D({ onReady, onFail }: Hero3DProps) {
+export default function Hero3D({ onReady, onFail, paused = false }: Hero3DProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<WallUnitScene | null>(null);
   const cb = useRef({ onReady, onFail });
   cb.current = { onReady, onFail };
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -52,7 +57,7 @@ export default function Hero3D({ onReady, onFail }: Hero3DProps) {
     let scene: WallUnitScene;
     try {
       scene = createWallUnitScene(host, {
-        reducedMotion: motion.matches,
+        reducedMotion: pausedRef.current || motion.matches,
         airColor: readSky(),
         airGain: airGain(),
         onFirstFrame: () => cb.current.onReady?.(),
@@ -63,7 +68,8 @@ export default function Hero3D({ onReady, onFail }: Hero3DProps) {
       return;
     }
 
-    const onMotion = () => scene.setReducedMotion(motion.matches);
+    sceneRef.current = scene;
+    const onMotion = () => scene.setReducedMotion(pausedRef.current || motion.matches);
     const onTheme = () => scene.setAirColor(readSky(), airGain());
     motion.addEventListener('change', onMotion);
     dark.addEventListener('change', onTheme);
@@ -75,9 +81,14 @@ export default function Hero3D({ onReady, onFail }: Hero3DProps) {
       motion.removeEventListener('change', onMotion);
       dark.removeEventListener('change', onTheme);
       mo.disconnect();
+      sceneRef.current = null;
       scene.dispose();
     };
   }, []);
+
+  useEffect(() => {
+    sceneRef.current?.setReducedMotion(paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }, [paused]);
 
   return <div ref={hostRef} className="absolute inset-0 cursor-grab touch-pan-y select-none active:cursor-grabbing" />;
 }

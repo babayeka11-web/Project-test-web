@@ -6,7 +6,7 @@ import { useId } from 'react';
 import { Badge, Icon, Notice, Price, SegmentedControl } from '@/components/ui';
 import { NOTES } from '@/lib/domain/constants';
 import { baht } from '@/lib/domain/format';
-import { LEVEL_TH } from '@/lib/domain/cleaning';
+import { LEVEL_TH, PKG_TH } from '@/lib/domain/cleaning';
 import { useContract } from './ContractProvider';
 import { asVisits, contractStore } from './contract-store';
 import { everyMonths, reportKindOf } from './sectors';
@@ -121,7 +121,7 @@ export function YearPlan() {
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
           <p className="text-small text-ink-2">
-            {est ? `${est.count} เครื่อง · ${state.pkg} · ราคาก่อน VAT` : 'ยังไม่ได้ใส่จำนวนเครื่องในเครื่องคำนวณ'}
+            {est ? `${est.count} เครื่อง · ${PKG_TH[state.pkg].th} · ราคาก่อน VAT` : 'ยังไม่ได้ใส่จำนวนเครื่องในเครื่องคำนวณ'}
           </p>
           {est && (
             <p aria-live="polite" className="text-small text-ink-2">

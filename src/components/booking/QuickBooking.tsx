@@ -2,9 +2,12 @@
 // Quick booking — the most important interaction of the site: 3 short steps (air-cons · how to clean · where and when)
 // and a live price summary. All numbers come from cleaningQuote() (domain layer) over the CleanRateTable prop; the
 // booking itself only writes to the quote store (src/lib/cart.ts) and opens the request form on /quote/.
+// On phones an ActionDock keeps the total and "จองล้างแอร์" in thumb reach while the steps scroll. What the customer
+// picked is kept for this tab (sessionStorage) so going to /quote/ and back, or between / and /cleaning/, keeps it.
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import { Icon, Price } from '@/components/ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActionDock } from '@/components/shared/ActionDock';
+import { Button, Price } from '@/components/ui';
 import { cart, useCart } from '@/lib/cart';
 import {
   cleaningQuote,
@@ -18,9 +21,10 @@ import {
   type QuickType,
 } from '@/lib/domain/cleaning';
 import { lineMessageUrl } from '@/lib/domain/company';
-import { SLOTS, type SlotId } from '@/lib/domain/queue';
+import { bkkNow, SLOTS, type SlotId } from '@/lib/domain/queue';
 import { AirconStep, MethodStep, WhenStep } from './BookingSteps';
 import { BookingSummary } from './BookingSummary';
+import { parseSavedBooking, SAVED_BOOKING_KEY, serializeSavedBooking, type SavedBooking } from './saved-booking';
 import { PLACEHOLDER_NOW, useBkkNow } from './use-bkk-now';
 
 export function QuickBooking({ table }: { table: CleanRateTable }) {
@@ -30,6 +34,35 @@ export function QuickBooking({ table }: { table: CleanRateTable }) {
   const [sel, setSel] = useState<CleanSelection>(defaultSelection);
   const [date, setDate] = useState('');
   const [slotPick, setSlotPick] = useState<SlotId | ''>('');
+  const [restored, setRestored] = useState(false);
+  const toolRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+
+  // after hydration: bring back what was picked in this tab (the server HTML always shows the default selection)
+  useEffect(() => {
+    let saved: SavedBooking | null = null;
+    try {
+      saved = parseSavedBooking(window.sessionStorage.getItem(SAVED_BOOKING_KEY), table, bkkNow());
+    } catch {
+      /* storage blocked: start from the default */
+    }
+    if (saved) {
+      setSel(saved.sel);
+      setDate(saved.date);
+      setSlotPick(saved.slotPick);
+    }
+    setRestored(true);
+  }, [table]);
+
+  // keep it for this tab — only once restored, so the defaults of the first render never overwrite it
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      window.sessionStorage.setItem(SAVED_BOOKING_KEY, serializeSavedBooking({ sel, date, slotPick }));
+    } catch {
+      /* storage blocked: the booking still works for this page */
+    }
+  }, [restored, sel, date, slotPick]);
 
   const q = useMemo(() => cleaningQuote(sel, table, zone, { date, now: now ?? PLACEHOLDER_NOW }), [sel, table, zone, date, now]);
 
@@ -54,21 +87,8 @@ export function QuickBooking({ table }: { table: CleanRateTable }) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-10">
+    <div ref={toolRef} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-10">
       <div className="grid min-w-0 grid-cols-1 gap-6">
-        {q.units > 0 && (
-          <a
-            href="#qb-summary"
-            className="glass sticky top-[calc(var(--header-h)+0.5rem)] z-20 flex min-h-11 items-center justify-between gap-3 rounded-full border border-line px-5 py-2 text-small shadow-card lg:hidden"
-          >
-            <span className="text-ink-2">
-              ยอดรวมตอนนี้ <Price amount={q.totals.inc} vat="inc" size="sm" tone="brand" />
-            </span>
-            <span className="flex shrink-0 items-center gap-1 font-medium text-brand">
-              ดูสรุป <Icon name="chevron-down" size={16} />
-            </span>
-          </a>
-        )}
         <AirconStep table={table} sel={sel} units={q.units} onCount={setCount} onSize={setSize} />
         <MethodStep
           table={table}
@@ -89,8 +109,27 @@ export function QuickBooking({ table }: { table: CleanRateTable }) {
           lineUrl={lineUrl}
           onBook={book}
           onAddOne={addOne}
+          ctaRef={ctaRef}
         />
       </aside>
+      {q.units > 0 && (
+        <ActionDock
+          watch={toolRef}
+          hideWhen={ctaRef}
+          label="ยอดรวมและจองล้างแอร์"
+          summary={
+            <span className="flex flex-col">
+              <span className="text-meta text-ink-3">ยอดรวม</span>
+              <Price amount={q.totals.inc} vat="inc" size="sm" tone="brand" />
+            </span>
+          }
+          action={
+            <Button size="sm" icon="clean" onClick={book} aria-disabled={!q.lines.length || undefined} aria-describedby="qb-book-note">
+              จองล้างแอร์
+            </Button>
+          }
+        />
+      )}
     </div>
   );
 }

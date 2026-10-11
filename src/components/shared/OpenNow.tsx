@@ -1,6 +1,8 @@
 'use client';
 // Live "เปิดอยู่ตอนนี้ / ปิดอยู่ · เปิดอีกครั้ง …" status. Computed in the browser in Bangkok time (never at build time) from the
 // company's opening hours, so it is right for a visitor in any time zone and never stale in the static HTML.
+// Shared by the contact page (CompanyCard) and the request hand-off (HandoffBox), which also reads useOpenStatus() to
+// step the phone action back while the office is closed.
 import { useSyncExternalStore } from 'react';
 import { Badge } from '@/components/ui';
 import { COMPANY } from '@/lib/domain/company';
@@ -37,11 +39,17 @@ const snapshot = () => {
   return `${n.date}|${n.min}`;
 };
 
-export function OpenNow({ className }: { className?: string }) {
+/** The live status, or null on the server and before hydration. */
+export function useOpenStatus(): { open: boolean; text: string } | null {
   const stamp = useSyncExternalStore(subscribe, snapshot, () => '');
-  if (!stamp) return <span aria-hidden className={`inline-block h-8 w-56 max-w-full rounded-full bg-surface-2 ${className ?? ''}`} />;
+  if (!stamp) return null;
   const [date, min] = stamp.split('|');
-  const s = openStatus({ date, min: Number(min) });
+  return openStatus({ date, min: Number(min) });
+}
+
+export function OpenNow({ className }: { className?: string }) {
+  const s = useOpenStatus();
+  if (!s) return <span aria-hidden className={`inline-block h-8 w-56 max-w-full rounded-full bg-surface-2 ${className ?? ''}`} />;
   return (
     <span role="status" className={className}>
       <Badge tone={s.open ? 'ok' : 'neutral'} dot size="md">

@@ -2,6 +2,7 @@
 // yet). Neutral shapes only: no brand marks, no copy of any manufacturer's design. Colours come from currentColor
 // (outline) and the --type-art-fill / --type-art-air custom properties, so the art follows the theme.
 import type { ReactNode, SVGProps } from 'react';
+import { cn } from '@/components/ui/cn';
 import './type-art.css';
 
 export type AcType = 'wall' | 'ceiling' | 'cassette' | 'floor' | 'duct';
@@ -95,10 +96,20 @@ const SHAPES: Record<AcType, ReactNode> = {
   ),
 };
 
-export function TypeArt({ type, title, ...rest }: { type: AcType; title?: string } & SVGProps<SVGSVGElement>) {
+export type TypeArtProps = {
+  type: AcType;
+  title?: string;
+  /** Let the air drift out of the unit (three passes, ≈5 s, then still; never under reduced motion). Use for one
+   *  illustration per view — never on lists of cards. */
+  animate?: boolean;
+} & SVGProps<SVGSVGElement>;
+
+export function TypeArt({ type, title, animate = false, className, ...rest }: TypeArtProps) {
   const label = title ?? TITLES[type];
   return (
     <svg
+      className={cn('type-art', className)}
+      data-animate={animate || undefined}
       viewBox="0 0 160 120"
       fill="none"
       stroke="currentColor"

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Badge, Button, Card, CtaBand, Icon, Notice, PageHeader, Price, Section, Table, Tabs } from '@/components/ui';
 import { TypeArt } from '@/components/shared/TypeArt';
 import { AddonList } from '@/components/installation/AddonList';
@@ -9,17 +10,16 @@ import { MoveRemove } from '@/components/installation/MoveRemove';
 import { buildAddonGroups, buildCompare, buildMaterialRows, buildMoveRemove, buildSizeRows } from '@/components/installation/build';
 import { MATERIAL_SPECS } from '@/components/installation/copy';
 import { INSTALL_TYPES } from '@/components/installation/types';
-import { buildTradeInData } from '@/components/tradein/data';
-import { TradeIn } from '@/components/tradein/TradeIn';
+import { RelatedGuides } from '@/components/knowledge/RelatedGuides';
 import { COMPANY } from '@/lib/domain/company';
 import { NOTES } from '@/lib/domain/constants';
 import { INCLUDED_PIPE_M, INSTALL_WARRANTY } from '@/lib/domain/install';
-import { getCatalogLite, getInstallItems, getRepairItems, serviceFrom } from '@/lib/domain/pricebook';
+import { serviceFrom } from '@/lib/domain/pricebook';
 import { TYPE_BY_ID } from '@/lib/domain/types';
 
 export const metadata: Metadata = {
   title: 'ติดตั้งแอร์มาตรฐาน · พรีเมียม',
-  description: `ราคาติดตั้งแอร์ตามประเภทและขนาด BTU รวมท่อน้ำยา ${INCLUDED_PIPE_M} เมตรแรก วัสดุหลักครบ ทดสอบก่อนส่งมอบ รับประกันงานติดตั้ง 3 ปีเมื่อซื้อเครื่องกับบริษัท พร้อมบริการย้ายแอร์ รื้อแอร์ และเทิร์นแอร์เก่า`,
+  description: `ราคาติดตั้งแอร์ตามประเภทและขนาด BTU รวมท่อน้ำยา ${INCLUDED_PIPE_M} เมตรแรก วัสดุหลักครบ ทดสอบก่อนส่งมอบ รับประกันงานติดตั้ง 3 ปีเมื่อซื้อเครื่องกับบริษัท พร้อมบริการย้ายแอร์และรื้อแอร์`,
   alternates: { canonical: './' },
 };
 
@@ -32,7 +32,6 @@ export default function InstallationPage() {
   const materialRows = buildMaterialRows();
   const addonGroups = buildAddonGroups();
   const { move, remove, dispose } = buildMoveRemove();
-  const tradeData = buildTradeInData({ catalog: getCatalogLite(), repair: getRepairItems(), install: getInstallItems() });
   const includes = {
     STANDARD: compare.levels.find(l => l.key === 'STANDARD')?.parts ?? [],
     PREMIUM: compare.levels.find(l => l.key === 'PREMIUM')?.parts ?? [],
@@ -42,7 +41,6 @@ export default function InstallationPage() {
     <>
       <PageHeader
         breadcrumbs={[{ label: 'หน้าแรก', href: '/' }, { label: 'ติดตั้งแอร์' }]}
-        eyebrow="ติดตั้งแอร์"
         title="ติดตั้งแอร์มาตรฐาน · พรีเมียม"
         lead={`ทีมช่างของบริษัทติดตั้งให้ ราคารวมท่อน้ำยา ${INCLUDED_PIPE_M} เมตรแรกและวัสดุหลักครบ ทดสอบและวัดค่าก่อนส่งมอบ เลือกแพ็กเกจตามห้องและงบ แล้วดูราคาตามขนาดได้ทันที`}
         actions={
@@ -50,11 +48,13 @@ export default function InstallationPage() {
             <Button href="#prices" size="lg" icon="tag">
               ดูราคาตามขนาด
             </Button>
-            <Button href="#tradein" size="lg" variant="ghost">
-              แอร์เก่า ซ่อมหรือเปลี่ยนดี
+            <Button href="/trade-in/" size="lg" variant="ghost">
+              เทิร์นแอร์เก่า
             </Button>
           </>
         }
+        // the next section (#compare) repeats the price example, the included pipe and both warranties: phones skip the card
+        asideOnPhone="hide"
         aside={
           <Card padding="lg" className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
@@ -94,7 +94,6 @@ export default function InstallationPage() {
       <Section
         id="prices"
         tone="soft"
-        eyebrow="ราคา"
         title="ราคาติดตั้งตามขนาด"
         lead="เลือกประเภทและขนาดเครื่อง เห็นราคามาตรฐานและพรีเมียมทันที ใส่ใบเสนอราคาได้เลย"
       >
@@ -144,7 +143,6 @@ export default function InstallationPage() {
 
       <Section
         id="materials"
-        eyebrow="วัสดุ"
         title="วัสดุที่ใช้"
         lead="วัสดุหลักเป็นรุ่นและยี่ห้อเดียวกันทุกงาน ระบุชื่อไว้ในใบเสนอราคา ท่อทองแดงเป็น O-TWO ความหนา 0.70 มม. เท่านั้น"
       >
@@ -199,7 +197,6 @@ export default function InstallationPage() {
       <Section
         id="addons"
         tone="soft"
-        eyebrow="งานเสริม"
         title="งานเสริมที่อาจต้องใช้"
         lead="ราคาแพ็กเกจรวมเฉพาะของมาตรฐานของหน้างานปกติ ถ้าท่อยาวกว่าที่รวมไว้ หรือต้องเดินไฟ เจาะผนัง ทีมแจ้งรายการเหล่านี้ตอนสำรวจ เลือกใส่ใบเสนอราคาไว้ก่อนได้"
       >
@@ -213,7 +210,6 @@ export default function InstallationPage() {
 
       <Section
         id="steps"
-        eyebrow="ขั้นตอน"
         title="ขั้นตอนติดตั้ง"
         lead="ช่างทำตามแบบฟอร์มงานติดตั้งของบริษัททุกเครื่อง เลือกประเภทแอร์และแพ็กเกจเพื่อดูว่าแต่ละขั้นทำอะไร"
       >
@@ -223,28 +219,29 @@ export default function InstallationPage() {
       <Section
         id="move"
         tone="soft"
-        eyebrow="ย้าย · รื้อ"
         title="ย้ายแอร์ · รื้อแอร์"
         lead="ย้ายไปจุดใหม่ในบ้านหรือสำนักงาน รื้อออกเมื่อเลิกใช้ หรือขนเครื่องเดิมออกพร้อมงานเปลี่ยนเครื่อง"
       >
-        <MoveRemove move={move} remove={remove} dispose={dispose} />
+        <div className="flex flex-col gap-6">
+          <MoveRemove move={move} remove={remove} dispose={dispose} />
+          {/* the trade-in tool has its own page now; old /installation/#tradein links land here */}
+          <p id="tradein" className="scroll-mt-header text-ink-2">
+            มีแอร์เครื่องเก่าจะเปลี่ยน{' '}
+            <Link href="/trade-in/" className="font-semibold text-brand underline underline-offset-4">
+              ดูมูลค่าเทิร์นได้ที่หน้าเทิร์นแอร์เก่า
+            </Link>
+          </p>
+        </div>
       </Section>
 
-      <Section
-        id="tradein"
-        eyebrow="เทิร์นแอร์เก่า"
-        title="แอร์เก่า ซ่อมหรือเปลี่ยนดี"
-        lead="บอกอายุ ขนาด และอาการของแอร์เดิม ดูมูลค่าเทิร์นที่หักจากเครื่องใหม่ เทียบค่าซ่อมกับเครื่อง Inverter ใหม่ขนาดเดียวกัน"
-      >
-        <TradeIn data={tradeData} />
-      </Section>
+      <RelatedGuides page="/installation/" />
 
       <CtaBand
         title="พร้อมติดตั้งแอร์ ขอใบเสนอราคาได้เลย"
         lead="ใส่ขนาดและจำนวนเครื่องในใบเสนอราคา ทีมสำรวจหน้างานแล้วแจ้งราคาจริงก่อนเริ่มงานทุกครั้ง"
         actions={
           <>
-            <Button href="/quote/" size="lg" icon="quote">
+            <Button data-page-cta href="/quote/" size="lg" icon="quote">
               ดูใบเสนอราคา
             </Button>
             <Button href="/products/" size="lg" variant="ghost">

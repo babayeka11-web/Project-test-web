@@ -154,8 +154,11 @@ export function createWallUnitScene(host: HTMLElement, opts: WallUnitSceneOption
   let airGain = opts.airGain ?? 1;
 
   /* ----- renderer ----- */
-  const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  // touch screens: fewer pixels and no MSAA on dense displays (the main cost on phones; the edges stay smooth at 1.5×)
+  const dpr = window.devicePixelRatio || 1;
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const renderer = new WebGLRenderer({ antialias: coarse ? dpr < 2 : true, alpha: true, powerPreference: 'low-power' });
+  renderer.setPixelRatio(Math.min(coarse ? 1.5 : 2, dpr));
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NeutralToneMapping;

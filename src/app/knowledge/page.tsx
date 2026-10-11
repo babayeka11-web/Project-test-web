@@ -64,7 +64,7 @@ export default function KnowledgePage() {
         lead="ส่งขนาดห้องและรูปหน้างานให้ทีมช่าง ทีมแนะนำขนาดและประเภทที่เหมาะ แล้วแจ้งราคาในใบเสนอราคาก่อนเริ่มงาน"
         actions={
           <>
-            <Button href="/contact/" icon="chat">
+            <Button data-page-cta href="/contact/" icon="chat">
               ปรึกษาทีมช่าง
             </Button>
             <Button href="/cleaning/#book" variant="secondary" icon="clean">

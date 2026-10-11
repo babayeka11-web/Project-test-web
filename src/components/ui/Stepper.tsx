@@ -1,6 +1,7 @@
 'use client';
 // Quantity stepper: − value + with 44px targets. The value is also typeable (spinbutton: ↑/↓, PageUp/PageDown,
-// Home/End) and clamped to min/max when the field is left.
+// Home/End) and clamped to min/max when the field is left. At a limit − / + are aria-disabled, never natively disabled:
+// a button that disables itself under the keyboard drops focus to <body>.
 import { useEffect, useId, useState, type KeyboardEvent } from 'react';
 import { cn } from './cn';
 import { Icon } from './Icon';
@@ -68,8 +69,12 @@ export function Stepper({
     }
   };
 
+  const atMin = value <= min;
+  const atMax = value >= max;
   const btn = cn(
-    'pressable grid shrink-0 place-items-center rounded-full text-ink transition-colors hover:bg-surface-2 hover:text-brand disabled:opacity-35 disabled:hover:bg-transparent',
+    'pressable grid shrink-0 place-items-center rounded-full text-ink transition-colors hover:bg-surface-2 hover:text-brand',
+    'disabled:opacity-35 disabled:hover:bg-transparent',
+    'aria-disabled:cursor-not-allowed aria-disabled:opacity-35 aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink',
     size === 'sm' ? 'size-11' : 'size-12',
   );
 
@@ -80,6 +85,8 @@ export function Stepper({
       className={cn(
         'inline-flex items-center rounded-full border border-line-strong/60 bg-surface p-0.5 transition-shadow',
         'has-[input:focus]:border-focus has-[input:focus]:ring-4 has-[input:focus]:ring-focus/20',
+        // invisible normally; Windows High Contrast paints it, where the box-shadow ring is dropped
+        'has-[input:focus]:outline-2 has-[input:focus]:outline-transparent',
         disabled && 'opacity-60',
         className,
       )}
@@ -87,8 +94,11 @@ export function Stepper({
       <button
         type="button"
         className={btn}
-        onClick={() => set(value - step)}
-        disabled={disabled || value <= min}
+        onClick={() => {
+          if (!disabled && !atMin) set(value - step);
+        }}
+        disabled={disabled}
+        aria-disabled={atMin || undefined}
         aria-label={`ลด${label}`}
         aria-controls={id}
       >
@@ -122,8 +132,11 @@ export function Stepper({
       <button
         type="button"
         className={btn}
-        onClick={() => set(value + step)}
-        disabled={disabled || value >= max}
+        onClick={() => {
+          if (!disabled && !atMax) set(value + step);
+        }}
+        disabled={disabled}
+        aria-disabled={atMax || undefined}
         aria-label={`เพิ่ม${label}`}
         aria-controls={id}
       >

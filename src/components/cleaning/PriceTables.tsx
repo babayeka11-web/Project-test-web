@@ -29,6 +29,12 @@ export type ExtraRow = { id: string; group: string; name: string; unit: string; 
 
 /** Short package names for the 3-segment switch (the full name and what it includes show under it). */
 const PKG_SHORT: Record<CleanPkgId, string> = { 'Basic Clean': 'มาตรฐาน', 'Standard Care': 'รายงานภาพ', 'Corporate Control': 'ทะเบียนทรัพย์สิน' };
+/** The warranty part of a package's line ('รับประกัน 30 วัน'), read from PKG_TH — the customer's difference, not a code. */
+const warrantyOf = (id: CleanPkgId): string | undefined =>
+  PKG_TH[id].sub
+    .split(' · ')
+    .find(x => x.startsWith('รับประกัน'))
+    ?.replace(/^รับประกันงาน/, 'รับประกัน');
 
 const TYPE_ORDER: readonly AcTypeId[] = ['wall', 'ceiling', 'cassette', 'floor', 'duct'];
 const LEVELS: readonly CleanLevel[] = ['C1', 'C2'];
@@ -53,7 +59,7 @@ function PriceCell({ row }: { row: CleanRateRow | undefined }) {
   return (
     <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
       <Price amount={row.ex} vat={false} size="md" />
-      <AddToQuote lines={[cleanPriceLine(row)]} label={row.ex == null ? 'ขอให้ประเมิน' : 'ใส่ใบเสนอราคา'} size="sm" />
+      <AddToQuote lines={[cleanPriceLine(row)]} label={row.ex == null ? 'ขอให้ประเมิน' : 'ใส่ใบเสนอราคา'} size="sm" variant="soft" />
     </div>
   );
 }
@@ -103,7 +109,7 @@ function TypePrices({ table, pkg, type }: { table: CleanRateTable; pkg: CleanPkg
                       </p>
                       {row ? <Price amount={row.ex} size="sm" /> : <span className="text-small text-ink-3">ไม่มีในแพ็กเกจนี้</span>}
                     </div>
-                    {row && <AddToQuote lines={[cleanPriceLine(row)]} label={row.ex == null ? 'ขอให้ประเมิน' : 'ใส่ใบเสนอราคา'} size="sm" />}
+                    {row && <AddToQuote lines={[cleanPriceLine(row)]} label={row.ex == null ? 'ขอให้ประเมิน' : 'ใส่ใบเสนอราคา'} size="sm" variant="soft" />}
                   </div>
                 );
               })}
@@ -148,7 +154,7 @@ function ExtraPrices({ pkg, rows }: { pkg: CleanPkgId; rows: ExtraRow[] }) {
             price: (
               <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
                 <Price amount={r.ex} vat={false} size="md" />
-                <AddToQuote lines={[line(r)]} label={label(r)} size="sm" />
+                <AddToQuote lines={[line(r)]} label={label(r)} size="sm" variant="soft" />
               </div>
             ),
           }))}
@@ -162,7 +168,7 @@ function ExtraPrices({ pkg, rows }: { pkg: CleanPkgId; rows: ExtraRow[] }) {
             <p className="mt-0.5 text-meta text-ink-3">{meta(r)}</p>
             <div className="mt-3 flex items-center justify-between gap-3">
               <Price amount={r.ex} unit={`/ ${r.unit}`} size="sm" />
-              <AddToQuote lines={[line(r)]} label={label(r)} size="sm" />
+              <AddToQuote lines={[line(r)]} label={label(r)} size="sm" variant="soft" />
             </div>
           </li>
         ))}
@@ -191,7 +197,7 @@ export function PriceTables({ table, extras }: { table: CleanRateTable; extras: 
           fullWidth
           value={pkg}
           onChange={setPkg}
-          options={ids.map(id => ({ value: id, label: PKG_SHORT[id], hint: PKG_TH[id].code }))}
+          options={ids.map(id => ({ value: id, label: PKG_SHORT[id], hint: warrantyOf(id) }))}
           className="max-w-3xl"
         />
         <p className="text-small text-ink-2">

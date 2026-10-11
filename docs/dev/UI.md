@@ -86,8 +86,10 @@ z-index: content 0–10 · sticky header and MobileBar 40 · toasts 60 · skip l
 
 Motion: press = `scale(.97)` (`pressable`), hover lift on cards (`lift`, fine pointers only), 150 ms for feedback,
 250 ms for state changes, 400 ms for entering panels; exits are faster. One orchestrated moment per page at most (the
-air lines draw in once on the hero). No scroll-triggered fade-ups. **Everything is off under
-`prefers-reduced-motion`** (global rule in `globals.css`).
+air lines draw in once on the hero). No scroll-triggered fade-ups and **no endless loops** (decorative motion is
+opt-in and finite, e.g. `<TypeArt animate>` drifts three times, ≈5 s, then stops). **Everything is off under
+`prefers-reduced-motion`** (global rule in `globals.css`). Component CSS that ships its own file goes in
+`@layer components` so utilities and the reduced-motion rule still win.
 
 ### 1.4 Signature and helper utilities (`globals.css`)
 
@@ -154,9 +156,39 @@ export default function Page() {
   inside components, 40–48px between a heading and its content (Section does this).
 - **Width:** no horizontal page scroll from 360 to 1440px. Wide content (tables, chip rows) scrolls inside its own box
   (`Table`, `no-scrollbar overflow-x-auto`).
-- **Phones:** touch targets ≥ 44px (all primitives are), the fixed MobileBar takes the bottom 64px + safe area (body
-  is padded for it), sticky things never cover focused fields (`scroll-padding` is set).
-- **Anchors:** give sections an `id`; links like `/cleaning/#book` land below the sticky header automatically.
+- **Phones:** touch targets ≥ 44px (all primitives are, footer links and breadcrumbs included), the fixed MobileBar
+  takes the bottom 64px + safe area (body is padded for it), sticky things never cover focused fields
+  (`scroll-padding` is set). No option hides in a side-scroller: Tabs wrap and SegmentedControl stacks when they do
+  not fit.
+- **Windows High Contrast (forced colors):** box-shadows and backgrounds are dropped there. Draw focus rings with a
+  (transparent) `outline` next to any `ring-*`, and mark selected states with `forced-colors:` utilities and system
+  colours (`forced-colors:forced-color-adjust-none forced-colors:bg-[SelectedItem] forced-colors:text-[SelectedItemText]`);
+  hide decorative moving thumbs/bars with `forced-colors:hidden`. The primitives already do; normal themes are
+  unchanged.
+- **Anchors:** give sections an `id`; links like `/cleaning/#book` land below the sticky header automatically. A
+  same-page `#…` href on `Button`, `Card`, `Breadcrumbs` or a toast action renders a **native `<a>`** (next/link's own
+  hash scroll fought the smooth scroll and overshot by up to 6,000px). Check with
+  `node scripts/anchors.mjs http://localhost:<port> [route …]` — it clicks every `#…` action in the page hero at
+  390×844 (touch) and 1366×900, with and without reduced motion, and exits 1 when a target lands outside 0–300px.
+- **One orange action per view — the contract.** The header's "จองล้างแอร์" is orange only while the page shows no
+  orange action of its own; otherwise it switches to `soft` (same size and label, nothing shifts). Pages tell it:
+  - give an **in-flow** primary (`.bg-cta`) action — or a wrapper around it — the attribute **`data-page-cta`**
+    (`<div data-page-cta className="flex gap-3">…</div>` or `<Button data-page-cta …>`). PageHeader's `actions`
+    already has it; the home hero, booking, configurator and install CTAs and QuoteGlance/QuoteTotals add it
+    themselves. The header watches every `[data-page-cta]` that is or holds a `.bg-cta` (IntersectionObserver,
+    re-scanned on route change and DOM changes), so it may mount late or change its button;
+  - a **fixed action dock** sets **`html[data-dock-open]`** while it is shown and **`--dock-h`** (its height, e.g.
+    `document.documentElement.style.setProperty('--dock-h', '88px')`) so focused fields scroll clear of it; remove both
+    when it hides. On `/quote/` the header button is always `soft`.
+  - Header and menu "จองล้างแอร์" go to `#book` on `/` and `/cleaning/` (what the customer picked stays), else to
+    `/cleaning/#book` (`bookingHref()` in `layout/nav-icons.ts`).
+- **Bottom clearance:** `html { scroll-padding-bottom }` adds `--mobilebar-h`, `--tray-h` (compare tray), `--dock-h`
+  (action dock) and `--toast-h` (set by the Toaster while toasts show). Anything else fixed at the bottom sets its own
+  variable here instead of covering focus.
+- **Controls never disable themselves.** Never set native `disabled` on a control as a result of activating it
+  (Chrome drops focus to `<body>` the moment it is disabled): use `aria-disabled` plus a guard in the handler
+  (`Button loading` does this; Stepper −/+ at their limits do too). Native `disabled` is only for a state the control
+  did not cause itself.
 - **Prices:** always through `<Price>` with an amount from `src/lib/domain/*`. Never type a number into a page.
 
 **Server vs client.** Static primitives (Container, Section, PageHeader, Card, Badge, Price, Stat, Notice, Table,
@@ -188,18 +220,26 @@ is a navy panel with air lines; everything inside re-themes (secondary buttons t
   <ul className="grid gap-5 md:grid-cols-3">…</ul>
 </Section>
 ```
-`SectionHeading` (same props + `as: 'h2'|'h3'`) for custom layouts; `Eyebrow` alone for a topic line with the air mark.
+`SectionHeading` (same props + `as: 'h2'|'h3'`) for custom layouts; `Eyebrow` alone for a topic line with the air mark
+(text `text-brand`, mark `text-sky` — sky text on the air wash measured 4.44:1).
 
 ### PageHeader
 `breadcrumbs: Crumb[]`, `eyebrow`, `title` (**the h1**), `lead`, `actions`, `aside` (right column ≥ 1024px), `meta`
-(small print), `children`. Sits under the transparent header on the `bg-air` wash with drawn-in air lines.
+(small print), `children`, `asideOnPhone?: 'show' | 'hide'` (default `'show'`; `'hide'` drops the aside below 1024px —
+use it when the page repeats that card further down, it keeps the phone hero within one screen). Sits under the
+transparent header on the `bg-air` wash with drawn-in air lines. Compact on phones: with breadcrumbs the eyebrow shows
+from 768px only (the crumb already names the topic). The `actions` wrapper carries `data-page-cta`.
 
 ### Button · IconButton · buttonClass · CountBubble
 `variant?: 'primary' | 'secondary' | 'ghost' | 'soft' | 'quiet'` (primary = orange CTA, **one per view**; secondary
 = navy; ghost = outlined; soft = pale sky; quiet = text only), `size?: 'sm' | 'md' | 'lg'` (44 / 48 / 56px),
-`icon` / `iconEnd` (icon name or node), `fullWidth`, `loading` (spinner + `aria-busy`, clicks ignored — keep a label
-like "กำลังส่ง…"), `href` (site path → next/link; `http(s)` opens a new tab with a hidden "(เปิดหน้าต่างใหม่)";
-`tel:`/`mailto:` stay in place), `external` to force a new tab, plus normal button/anchor attributes.
+`icon` / `iconEnd` (icon name or node), `fullWidth`, `loading` (spinner + `aria-busy` + `aria-disabled`, clicks
+ignored, focus kept — keep a label like "กำลังส่ง…"; use it, not `disabled`, for "busy after a click"), `href` (site
+path → next/link; **`#…` → a native `<a>`** so the browser's scroll lands it; `http(s)` opens a new tab with a hidden
+"(เปิดหน้าต่างใหม่)"; `tel:`/`mailto:` stay in place), `external` to force a new tab, `prefetch`, plus normal
+button/anchor attributes. **Never set native `disabled` as a result of activating the button** (§2). Hiding a Button at
+some widths: use a `max-*:hidden` variant (`className="max-lg:hidden"`) — a plain `hidden` loses to its own
+`inline-flex`.
 ```tsx
 <Button href="/cleaning/#book" icon="clean">จองล้างแอร์</Button>
 <Button variant="secondary" icon="quote" onClick={add}>ใส่ใบเสนอราคา</Button>
@@ -223,12 +263,15 @@ like "กำลังส่ง…"), `href` (site path → next/link; `http(s)` 
 
 ### Badge · Chip
 Badge (static label): `tone?: 'neutral' | 'sky' | 'brand' | 'ok' | 'warn' | 'bad' | 'cta' | 'outline'`,
-`size?: 'sm' | 'md'`, `icon`, `dot`. Use for "ก่อน VAT", "แบบจำลองเพื่ออธิบาย", "คิวด่วน", "สอบถามทีมขาย".
-Chip (toggle, `aria-pressed`, 44px): `selected`, `onClick`, `icon`, `count`. Wrap chips in
+`size?: 'sm' | 'md'`, `icon`, `dot`, `truncate` (opt-in one line with "…"; by default a long label wraps instead —
+reflow at 320px / 200% zoom). One-line badges keep their 28 / 32px pill. Use for "ก่อน VAT", "แบบจำลองเพื่ออธิบาย",
+"คิวด่วน", "สอบถามทีมขาย".
+Chip (toggle, `aria-pressed`, 44px): `selected`, `onClick`, `icon`, `count`, `countLabel` (what the count counts, read
+by screen readers only: `count={351} countLabel="รุ่น"` → "ติดผนัง 351 รุ่น"). Wrap chips in
 `<div role="group" aria-labelledby=…" className="flex flex-wrap gap-2">`.
 ```tsx
 <Badge tone="outline" icon="info">{NOTES.simulation}</Badge>
-<Chip selected={on} count={351} onClick={toggle}>ติดผนัง</Chip>
+<Chip selected={on} count={351} countLabel="รุ่น" onClick={toggle}>ติดผนัง</Chip>
 ```
 
 ### Price
@@ -253,14 +296,18 @@ grid, 1.75 stroke, round joins. Names: services `clean` (snowflake) · `install`
 `users` · `globe` · `building` · `home` · `truck`; status `check` · `info` · `alert` · `shield` · `clock` ·
 `calendar` · `document`; air `sparkle` · `leaf` · `thermometer` · `wind` · `droplet` · `bolt` · `sun` · `moon` ·
 `monitor`; interface `search` · `close` · `menu` · `plus` · `minus` · `chevron-down|up|left|right` ·
-`arrow-right|left` · `external` · `copy` · `send` · `trash` · `sliders` · `camera`. Aliases: `snowflake`, `wrench`,
+`arrow-right|left` · `external` · `copy` · `send` · `trash` · `sliders` · `camera`; media `pause` · `play` (stop or
+resume a motion or a 3D view — pair with a visible or `IconButton` label such as "หยุดภาพเคลื่อนไหว"). Aliases: `snowflake`, `wrench`,
 `gauge`, `cart`, `line`, `map-pin`, `chevron`, `arrow`, `x`, `arrow-up-right`. Decorative icons next to text need
 nothing; icon-only controls use `IconButton`.
 
 ### SegmentedControl (client)
 Radiogroup for 2–4 short exclusive options. `options: { value, label, hint?, icon?, disabled? }[]`, `value`,
 `onChange`, `label` or `labelledBy` (one is required for a name), `size?: 'sm' | 'md'`, `fullWidth` (equal segments,
-shrinks on phones), `name` (adds a hidden input). Arrow keys move and select; the thumb slides.
+shrinks on phones), `name` (adds a hidden input). Arrow keys move and select; the thumb slides. When the row does not
+fit (it would scroll or cut a label — measured after fonts load), it turns into a two-column grid with no thumb (an odd
+last option spans both columns); it tries the row again only when the window gets wider. Keyboard behaviour is the
+same in both layouts.
 ```tsx
 <span id="lvl">วิธีล้าง</span>
 <SegmentedControl labelledBy="lvl" fullWidth value={level} onChange={setLevel}
@@ -270,12 +317,14 @@ shrinks on phones), `name` (adds a hidden input). Arrow keys move and select; th
 ### Tabs (client)
 `items: { id, label, content, icon?, count? }[]`, `label` (tablist name), `value`/`defaultValue`/`onChange`,
 `variant?: 'line' | 'pill'`, `panelClassName`. Roving tabindex, ←/→/Home/End. All panels are in the static HTML
-(inactive ones `hidden`). Use for switching views of the same thing (ติดผนัง / แขวน / สี่ทิศทาง), not for page navigation.
+(inactive ones `hidden`). Below 640px tabs that do not fit wrap onto more rows (the line indicator follows its row);
+from 640px a list that is too wide scrolls sideways and fades at the edge that has more. Use for switching views of the same thing (ติดผนัง / แขวน / สี่ทิศทาง), not for page navigation.
 
 ### Stepper (client)
 `value`, `onChange`, `label` (required, e.g. "จำนวนเครื่อง"), `min` (0), `max` (99), `step`, `unit` ("เครื่อง"),
 `size?: 'sm' | 'md'`, `disabled`, `describedBy`, `name`. − / + are 44–48px; the number is typeable (↑/↓,
-PageUp/PageDown, Home/End) and clamped on blur.
+PageUp/PageDown, Home/End) and clamped on blur. At `min` / `max` the − / + button is `aria-disabled` (dimmed, ignores
+presses) but stays focusable, so pressing it down to the limit never drops keyboard focus.
 
 ### Field · Fieldset · Input · Select · Textarea · Checkbox · Radio (client)
 `Field`: `label`, `hint`, `error`, `required` (red * + "(จำเป็น)" for screen readers), `optional` ("(ไม่บังคับ)"),
@@ -284,7 +333,8 @@ PageUp/PageDown, Home/End) and clamped on blur.
 `Input`: native props + `icon` (left), `suffix` (unit, right), `size?: 'md' | 'lg'` (48 / 56px).
 `Select`: native props + `placeholder` (empty first option), `size`. `Textarea`: native props.
 `Checkbox` / `Radio`: `label`, `description`, `variant?: 'row' | 'card'` (card = bordered option with selected ring),
-`aside` (e.g. a Price on the right of a card), plus native props.
+`aside` (e.g. a Price on the right of a card), plus native props. Accessible name = `label` + `aside`
+(`aria-labelledby`), description = `description` — each read once. Clicking anywhere on the card still selects it.
 ```tsx
 <Field label="เบอร์โทร" required hint="ทีมโทรยืนยันในเวลาทำการ" error={errors.tel}>
   <Input name="tel" type="tel" inputMode="tel" autoComplete="tel" icon="phone" />
@@ -319,7 +369,8 @@ page scroll is locked. Bottom sheets for filters on phones; right sheets for the
 ### toast · Toaster (client)
 `toast(message, { tone?: 'neutral' | 'ok' | 'warn' | 'bad', action?: { label, href? , onClick? }, duration?, id? })`
 returns an id; `toast.dismiss(id)`. `<Toaster />` is already in the root layout. Polite live region, never steals
-focus, 4.5 s (7 s with an action), pauses on hover/focus, sits above the MobileBar. Same verb as the button:
+focus, 4.5 s (7 s with an action), pauses on hover/focus, sits above the MobileBar and never covers the focused control
+(sets `--toast-h` for scroll padding; a toast that appears over the focused control scrolls it clear). Same verb as the button:
 button "ใส่ใบเสนอราคา" → toast "เพิ่มในใบเสนอราคาแล้ว". Don't toast errors that need fixing — show them in place.
 ```tsx
 toast('เพิ่มในใบเสนอราคาแล้ว', { tone: 'ok', action: { label: 'ดูใบเสนอราคา', href: '/quote/' } });
@@ -345,7 +396,8 @@ keyboard-scrollable (`tabIndex=0`) and shows edge shadows when there is more. `T
 
 ### Breadcrumbs
 `items: { label, href? }[]` (last = current page, `aria-current="page"`), `jsonLd` (default true: prints a
-schema.org BreadcrumbList). PageHeader renders it from `breadcrumbs`.
+schema.org BreadcrumbList). PageHeader renders it from `breadcrumbs`. Each link has a 44px-tall invisible hit area;
+only the parent crumb is prefetched.
 
 ### CtaBand
 `title` (h2), `lead`, `actions` (one primary + at most one secondary), `aside` (hours, phone, short list), `as`,
@@ -360,6 +412,12 @@ that loads (> 300 ms); give it the real content's size so nothing jumps.
 className="absolute … text-sky opacity-50" />` = the signature flowing lines (decorative, `aria-hidden`, colour from
 `text-*`, draws in once when `animate`). `cn(...)` joins class names.
 
+### TypeArt (`@/components/shared/TypeArt`)
+`<TypeArt type="wall|ceiling|cassette|floor|duct" title? animate? className />` — neutral line drawing of an indoor
+unit (no brand shapes), coloured by `text-*` and `--type-art-fill` / `--type-art-air`. Still by default. `animate`
+(sets `data-animate`) lets the air drift out three times (≈5 s) and stop — use it for **one** illustration per view
+(the home hero), never on card lists.
+
 ---
 
 ## 4. Site chrome (`src/components/layout`, used by `layout.tsx` only)
@@ -368,14 +426,19 @@ className="absolute … text-sky opacity-50" />` = the signature flowing lines (
 |---|---|
 | `SkipLink` | first tab stop, "ข้ามไปยังเนื้อหาหลัก" → `#main` |
 | `BetaNotice` | slim navy bar: เว็บไซต์ทดลอง · ราคามาตรฐานจาก Pricebook 2569 ก่อน VAT · ฟอร์มยังไม่ส่งถึงทีมอัตโนมัติ |
-| `Header` | sticky, fixed height (no layout shift), transparent at the top and frosted glass once content scrolls under it; logo + wordmark, `NAV` from `src/lib/site.ts` with active state (≥ 1024px), `CartButton`, primary "จองล้างแอร์" → `/cleaning/#book`, menu button (< 1024px) |
-| `MobileMenu` | right Sheet: booking CTA, `NAV` with descriptions, `NAV_MORE`, hours, call / LINE / e-mail |
-| `CartButton` | link to `/quote/` with the live count from `useCartCount()` (`@/lib/cart`) |
-| `MobileBar` | phones (< 768px): โทร · LINE · ใบเสนอราคา (count) · เมนู; glass, safe-area aware; `body` is padded by `--mobilebar-h` |
-| `Footer` | company facts from `COMPANY`, all pages, hours + out-of-hours note, HQ map link, tax ID, LINE/Facebook/phone/e-mail, FUJIVA mark (light/dark file), theme switch |
+| `Header` | sticky, fixed height (no layout shift), transparent at the top and frosted glass once content scrolls under it; logo + wordmark, `NAV` short labels from `src/lib/site.ts` with active state (≥ 1024px), `CartButton` (icon + count), "เพิ่มเติม" (≥ 1024px, opens the menu sheet: NAV_MORE, hours, โทร/LINE), the phone number (≥ 1280px), "จองล้างแอร์" (`bookingHref()`; orange, or `soft` while the page's own orange action or a dock is on screen — §2), menu button (< 1024px) |
+| `use-page-cta-visible` | `usePageCtaVisible()` — true while a `[data-page-cta]` holding a `.bg-cta` is in the viewport or `html[data-dock-open]` is set (§2) |
+| `MobileMenu` | right Sheet "เมนูทั้งหมด": booking CTA, `NAV` with full labels (`item.full ?? item.th`) and descriptions, `NAV_MORE`, hours, call / LINE / e-mail; only `/cleaning/` and `/prices/` are prefetched |
+| `CartButton` | link to `/quote/` with the live count from `useCartCount()` (`@/lib/cart`); `title` tooltip when the label is hidden |
+| `MobileBar` | phones (< 768px): โทร · LINE · ใบเสนอราคา (count) · เมนู, 13px labels; glass, safe-area aware; `body` is padded by `--mobilebar-h`. "เมนู" is `<a href="#site-map" role="button">`: before hydration it jumps to the footer's page list, after it opens the sheet (Enter/Space) |
+| `Footer` | company facts from `COMPANY`, all pages (`item.full ?? item.th`, 44px rows; the list is `#site-map`), hours + out-of-hours note, HQ map link, tax ID, LINE/Facebook/phone/e-mail, FUJIVA mark (light/dark file), theme switch |
 | `ThemeSwitch` | ตามเครื่อง · สว่าง · มืด, stored in `localStorage['sbp-theme']`, applied before paint by `THEME_SCRIPT` |
 | `JsonLd` | schema.org `HVACBusiness` built from `COMPANY` |
 | `menu-store` | `setMenuOpen(bool)` / `useMenuOpen()` — open the menu from anywhere |
+
+`src/lib/site.ts`: `NavItem = { href, th, full?, sub? }` — `th` is the short header label, `full` the label with its
+noun for the sheet and footer ("ซ่อม" → "ซ่อมแอร์"). `NAV_MORE` lists `/area/`, `/knowledge/`, `/faq/`, `/contact/`,
+`/trade-in/` (เทิร์นแอร์เก่า) and `/quote/`.
 
 Brand files: `public/brand/sbp.png` (SP mark), `fujiva.png` (light backgrounds), `fujiva-light.png` (dark
 backgrounds) — always through `asset()` and never redrawn. Favicon (`src/app/icon.svg`, `apple-icon.png`) is our own

@@ -52,7 +52,7 @@ export default async function GuidePage({ params }: { params: Promise<Params> })
               </div>
               <p className="text-small text-ink-2">อ่านแล้วลองต่อได้เลย ใช้ตัวเลขจริงของบริษัท ไม่ต้องกรอกข้อมูลส่วนตัว</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-col">
-                <Button href={tool.href} fullWidth>
+                <Button data-page-cta href={tool.href} fullWidth>
                   {tool.label}
                 </Button>
                 {more.map(t => (
@@ -101,7 +101,7 @@ export default async function GuidePage({ params }: { params: Promise<Params> })
         lead="ส่งขนาดห้องและรูปหน้างานให้ทีมช่าง ทีมแนะนำที่เหมาะ แล้วแจ้งราคาในใบเสนอราคาก่อนเริ่มงาน"
         actions={
           <>
-            <Button href="/contact/" icon="chat">
+            <Button data-page-cta href="/contact/" icon="chat">
               ปรึกษาทีมช่าง
             </Button>
             <Button href={COMPANY.telHref} variant="secondary" icon="phone">

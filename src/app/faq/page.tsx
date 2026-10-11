@@ -6,7 +6,7 @@ import { getFaq } from '@/lib/domain/pricebook';
 import { groupFaq } from './faq-groups';
 
 export const metadata: Metadata = {
-  title: 'คำถามที่พบบ่อย',
+  title: 'คำถามที่พบบ่อย เรื่องล้าง ติดตั้ง และค่าเดินทาง',
   description: 'ตอบเรื่องการจอง คิวด่วน ราคาก่อน VAT ยอดขั้นต่ำ ค่าเดินทาง งานติดตั้ง รื้อ ย้ายแอร์ และสัญญารายปี จากทีมช่างของสหบูรพากรุ๊ป',
   alternates: { canonical: './' },
 };
@@ -45,7 +45,8 @@ export default function FaqPage() {
       <Section id="questions" title="เลือกหัวข้อที่อยากรู้">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-14">
           <nav aria-label="หัวข้อคำถาม" className="lg:sticky lg:top-28 lg:self-start">
-            <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0">
+            {/* phones and tablets: the topics wrap, so none hides off-screen in a side-scroller */}
+            <ul className="flex flex-wrap gap-2 lg:flex-col lg:flex-nowrap lg:gap-1">
               {groups.map(g => (
                 <li key={g.id} className="shrink-0">
                   <a
@@ -77,7 +78,7 @@ export default function FaqPage() {
         </div>
       </Section>
 
-      <Section id="related" tone="soft" title="อ่านต่อ" lead="ข้อมูลที่ลูกค้าเปิดดูต่อหลังอ่านคำถามเหล่านี้">
+      <Section id="related" tone="soft" title="อ่านต่อ" lead="หน้าที่ตอบเรื่องราคาและพื้นที่ได้ละเอียดกว่า">
         <ul className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {RELATED.map(r => (
             <li key={r.href} className="flex">
@@ -102,7 +103,7 @@ export default function FaqPage() {
         lead="เล่าสิ่งที่อยากรู้ให้ทีมงาน ทีมตอบกลับในเวลาทำการ"
         actions={
           <>
-            <Button href="/contact/" variant="primary" size="lg" icon="chat">
+            <Button data-page-cta href="/contact/" variant="primary" size="lg" icon="chat">
               ติดต่อทีมงาน
             </Button>
             <Button href={COMPANY.telHref} variant="secondary" size="lg" icon="phone">

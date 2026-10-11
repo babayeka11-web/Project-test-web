@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { btuRange, emptyFilter, facetCounts, filterToParams, haystack, paramsToFilter, priceRange, queryCatalog, textMatches, type CatalogFilter } from './catalog';
+import { BRAND_ALIASES, btuRange, emptyFilter, facetCounts, filterToParams, haystack, paramsToFilter, priceRange, queryCatalog, textMatches, type CatalogFilter } from './catalog';
 import { getBrands, getCatalog, getCatalogLite } from './pricebook';
 
 const cat = getCatalog();
@@ -29,6 +29,23 @@ describe('catalog search', () => {
     expect(queryCatalog(cat, f({ q: 'carrier 12k' })).list.map(m => m.slug)).toEqual(queryCatalog(cat, f({ q: 'carrier 12000' })).list.map(m => m.slug));
     expect(queryCatalog(cat, f({ q: 'แอร์ carrier 12000 btu' })).list.length).toBe(queryCatalog(cat, f({ q: 'carrier 12000' })).list.length);
     expect(queryCatalog(cat, f({ q: 'zzzz' })).list).toEqual([]);
+  });
+  it('Thai brand names find the same series as the Latin name', () => {
+    const slugs = (q: string) => queryCatalog(cat, f({ q })).list.map(m => m.slug);
+    const daikin = slugs('daikin');
+    expect(daikin.length).toBeGreaterThan(0);
+    expect(slugs('ไดกิ้น')).toEqual(daikin);
+    expect(slugs('ไดกิน')).toEqual(daikin);
+    expect(slugs('ไดกิ้น 12000')).toEqual(slugs('daikin 12000'));
+    // both Mitsubishi brands answer to the short Thai name
+    const mitsu = queryCatalog(cat, f({ q: 'มิตซู' })).list;
+    expect(new Set(mitsu.map(m => m.brand))).toEqual(new Set(['mitsubishi-electric', 'mitsubishi-heavy-duty']));
+    // 'อินเวอร์เตอร์' = every Inverter series, and only those
+    const inv = queryCatalog(cat, f({ q: 'อินเวอร์เตอร์' })).list;
+    expect(inv.length).toBe(cat.filter(m => m.inverter).length);
+    // every alias key is a real brand name in the data (a renamed brand would silently lose its Thai spelling)
+    const names = new Set(cat.map(m => m.brandName));
+    expect(Object.keys(BRAND_ALIASES).filter(n => !names.has(n))).toEqual([]);
   });
   it('textMatches on a haystack', () => {
     const h = haystack({ series: 'FTKQ · Inverter', brandName: 'Daikin', type: 'wall', skus: [{ sku: 'FTKQ12', btu: 12000, price: 1, installStdEx: null }] });

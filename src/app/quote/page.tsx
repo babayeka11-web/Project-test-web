@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QuoteGlance } from '@/components/quote/QuoteGlance';
 import { QuoteWorkspace } from '@/components/quote/QuoteWorkspace';
 import { RequestSection } from '@/components/quote/RequestSection';
 import { Button, CtaBand, PageHeader, Section } from '@/components/ui';
@@ -19,9 +20,12 @@ export default function QuotePage() {
         breadcrumbs={[{ label: 'หน้าแรก', href: '/' }, { label: 'ใบเสนอราคา' }]}
         eyebrow="ใบเสนอราคา"
         title="ใบเสนอราคาเบื้องต้น"
-        lead="รวมทุกรายการที่คุณเลือกไว้ พร้อมค่าเดินทางและ VAT เห็นยอดรวมทันที แล้วส่งให้ทีมยืนยันราคาและคิวอีกครั้งก่อนเข้างาน"
+        lead="รายการที่คุณเลือก พร้อมค่าเดินทางและ VAT ให้ทีมยืนยันราคาและคิวก่อนเข้างาน"
         meta={NOTES.source}
-      />
+      >
+        {/* phones: the total and the next step on the first screen */}
+        <QuoteGlance />
+      </PageHeader>
       <Section
         id="items"
         spacing="compact"
@@ -36,12 +40,13 @@ export default function QuotePage() {
         className="print:hidden"
         title="มีข้อสงสัย คุยกับทีมได้เลย"
         lead="โทรหรือทัก LINE ในเวลาทำการ ทีมช่วยเลือกบริการ ตรวจรายการ และยืนยันราคาให้"
+        // the page's orange action is the request (QuoteGlance · QuoteTotals · the form): no second orange down here
         actions={
           <>
-            <Button href={COMPANY.telHref} icon="phone">
+            <Button href={COMPANY.telHref} variant="secondary" icon="phone">
               โทร {COMPANY.tel}
             </Button>
-            <Button href={COMPANY.lineUrl} variant="secondary" icon="chat">
+            <Button href={COMPANY.lineUrl} variant="ghost" icon="chat">
               ทัก LINE
             </Button>
           </>

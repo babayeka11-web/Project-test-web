@@ -1,4 +1,5 @@
-// /cleaning/ — ล้างแอร์: C1 vs C2, packages, price by size, what the crew does, how often, and the quick booking.
+// /cleaning/ — ล้างแอร์: C1 vs C2, price by size, then the quick booking (early, so a phone reaches it in a few screens),
+// then packages, what the crew does, how often, and related guides.
 // Server component: reads the Pricebook at build time and passes small serialisable props to the client parts.
 import type { Metadata } from 'next';
 import { QuickBookingSection } from '@/components/booking/QuickBookingSection';
@@ -8,6 +9,7 @@ import { MethodCompare } from '@/components/cleaning/MethodCompare';
 import { PackageCards } from '@/components/cleaning/PackageCards';
 import { PriceTables, type ExtraRow } from '@/components/cleaning/PriceTables';
 import { Button, Card, CtaBand, PageHeader, Price, Section } from '@/components/ui';
+import { RelatedGuides } from '@/components/knowledge/RelatedGuides';
 import { CLEAN_PKG_IDS, LEVEL_TH, startAt, type CleanPkgId } from '@/lib/domain/cleaning';
 import { COMPANY } from '@/lib/domain/company';
 import { VOLUME_HINT } from '@/lib/domain/constants';
@@ -58,8 +60,7 @@ export default function CleaningPage() {
     <>
       <PageHeader
         breadcrumbs={[{ label: 'หน้าแรก', href: '/' }, { label: 'ล้างแอร์' }]}
-        eyebrow="ล้างแอร์"
-        title="ล้างแอร์โดยทีมช่างของบริษัท"
+        title="ล้างแอร์ ล้างปกติ · ล้างใหญ่"
         lead="เลือกล้างปกติหรือล้างใหญ่ แล้วดูราคาก่อน VAT ตามขนาดเครื่อง จองได้ในสามขั้น ทีมยืนยันคิวและเวลาก่อนเข้างานทุกครั้ง"
         actions={
           <>
@@ -72,6 +73,8 @@ export default function CleaningPage() {
           </>
         }
         meta={`ทีมช่างของบริษัท ${COMPANY.years} · ${COMPANY.hours}`}
+        // the same starting prices open the next section (MethodCompare), so phones skip the card
+        asideOnPhone="hide"
         aside={
           <Card padding="md" className="grid grid-cols-1 gap-4">
             <Price amount={from} prefix="เริ่ม" unit="/ เครื่อง" size="xl" tone="brand" stacked />
@@ -102,27 +105,27 @@ export default function CleaningPage() {
       </Section>
 
       <Section
-        id="packages"
-        tone="soft"
-        eyebrow="แพ็กเกจ"
-        title="ได้เอกสารอะไรหลังล้าง"
-        lead="สามแพ็กเกจ ต่างกันที่เอกสารและการติดตามผล ขั้นตอนล้างเหมือนกัน เลือกตามที่คุณต้องใช้เป็นหลักฐาน"
-      >
-        <PackageCards table={table} />
-      </Section>
-
-      <Section
         id="prices"
-        eyebrow="ราคา"
+        tone="soft"
         title="ราคาตามขนาด"
         lead="เลือกแพ็กเกจและชนิดแอร์ ราคาต่อเครื่องก่อน VAT ใส่ลงใบเสนอราคาได้ทีละรายการ"
       >
         <PriceTables table={table} extras={extraRows()} />
       </Section>
 
+      <QuickBookingSection id="book" tone="plain" />
+
+      <Section
+        id="packages"
+        tone="soft"
+        title="ได้เอกสารอะไรหลังล้าง"
+        lead="แพ็กเกจเลือกได้ในขั้นที่ 2 ของการจอง ทั้งสามแบบล้างเหมือนกัน ต่างกันที่เอกสารและการติดตามผล"
+      >
+        <PackageCards table={table} />
+      </Section>
+
       <Section
         id="steps"
-        tone="soft"
         eyebrow="หน้างาน"
         title="ช่างทำอะไรบ้าง"
         lead="ดูทุกขั้นตั้งแต่ตรวจก่อนเริ่มจนถึงลงนามรับมอบ เลือกชนิดแอร์และวิธีล้างเพื่อดูขั้นตอนของงานที่คุณจะจอง"
@@ -130,11 +133,11 @@ export default function CleaningPage() {
         <CrewSteps />
       </Section>
 
-      <Section id="interval" eyebrow="ดูแลแอร์" title="ควรล้างบ่อยแค่ไหน" lead="ขึ้นกับฝุ่น ชั่วโมงใช้งาน และสถานที่ นี่คือแนวทางที่ใช้กันทั่วไป">
+      <Section id="interval" tone="soft" title="ควรล้างบ่อยแค่ไหน" lead="ขึ้นกับฝุ่น ชั่วโมงใช้งาน และสถานที่ นี่คือแนวทางที่ใช้กันทั่วไป">
         <Intervals />
       </Section>
 
-      <QuickBookingSection id="book" />
+      <RelatedGuides page="/cleaning/" />
 
       <CtaBand
         id="b2b"
@@ -142,7 +145,7 @@ export default function CleaningPage() {
         lead="ทีมขายวางรอบล้างทั้งปี ประเมินอัตราตามจำนวนเครื่องและสถานที่ พร้อมรายงานรายเครื่อง"
         actions={
           <>
-            <Button href="/business/" variant="primary" size="lg">
+            <Button data-page-cta href="/business/" variant="primary" size="lg">
               ดูสัญญาล้างรายปี
             </Button>
             <Button href="/contact/" variant="secondary" size="lg">

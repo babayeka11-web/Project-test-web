@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { asset } from '@/lib/site';
 import { cn } from '@/components/ui/cn';
 
-/** SP company mark + "SBP AirCare" wordmark, linking home. */
+/** SP company mark + "SBP AirCare" wordmark, linking home (not prefetched: it is on every page and rarely the next step). */
 export function Logo({ className, priority }: { className?: string; priority?: boolean }) {
   return (
     <Link
       href="/"
+      prefetch={false}
       className={cn('group inline-flex min-h-11 shrink-0 items-center gap-2.5 rounded-control no-underline', className)}
     >
       <Image

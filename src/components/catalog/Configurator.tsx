@@ -2,8 +2,10 @@
 // The buying panel of a model page: installation package (มาตรฐาน / พรีเมียม / ไม่ติดตั้ง), add-ons by group, number of
 // units and a live itemised total (ก่อน VAT, VAT, รวม). Receives only this SKU's data from the server page — never the
 // Pricebook. "ใส่ใบเสนอราคา" builds the same lines (P- I- A- S-) as the reference through productLines().
-import { useId, useMemo, useState } from 'react';
-import { AddToQuote } from '@/components/shared/AddToQuote';
+// Optional add-ons stay folded until wanted; on phones an ActionDock keeps the total and "ใส่ใบเสนอราคา" in thumb reach.
+import { useId, useMemo, useRef, useState } from 'react';
+import { ActionDock } from '@/components/shared/ActionDock';
+import { AddToQuote, useInQuote } from '@/components/shared/AddToQuote';
 import { AccordionItem, Badge, Button, Card, Checkbox, Field, Fieldset, Notice, Price, Radio, Select, Stepper } from '@/components/ui';
 import { INSTALL_WARRANTY, INCLUDED_PIPE_M, breakdown, optionNote, packageParts, productLines, type AddonOption, type InstallItem } from '@/lib/domain/install';
 import { baht, thousands, VAT } from '@/lib/domain/format';
@@ -23,6 +25,9 @@ export type ConfiguratorProps = {
 
 type Pkg = 'STANDARD' | 'PREMIUM' | 'NONE';
 type AddState = { choice: number; qty: number; on: boolean };
+
+/** Shown once for the whole "assessed on site" group instead of on every row. */
+const SURVEY_HINT = 'ไม่มีราคาตายตัว · ทีมแจ้งราคาก่อนทำทุกครั้ง';
 
 /** Shorter option names for the choose-one lists (the Pricebook names are long). */
 function shortName(name: string): string {
@@ -79,9 +84,13 @@ export function Configurator({ brandName, type, sku, btu, price, options }: Conf
   const bd = useMemo(() => breakdown(lines), [lines]);
   const detailOf = useMemo(() => new Map(lines.map(l => [l.name, l.detail])), [lines]);
   const typeTh = TYPE_BY_ID[type].th;
+  const inQuote = useInQuote(lines);
+  const picked = hasInstall ? addons.length : 0;
+  const buyRef = useRef<HTMLDivElement>(null);
+  const inlineAddRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start lg:gap-10">
+    <div ref={buyRef} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start lg:gap-10">
       <div className="flex min-w-0 flex-col gap-10">
         {/* 1 — installation package */}
         <div className="flex flex-col gap-4">
@@ -108,7 +117,8 @@ export function Configurator({ brandName, type, sku, btu, price, options }: Conf
                           {o.key === 'STANDARD' && <Badge tone="ok">แนะนำ</Badge>}
                         </span>
                       }
-                      description={o.note}
+                      // the badge already says แนะนำ, and the unit is bought here: its warranty, not the 1–3 ปี range
+                      description={o.key === 'STANDARD' ? INSTALL_WARRANTY.boughtHere : o.note}
                       aside={<Price amount={o.item.ex} size="sm" vat={false} className="whitespace-nowrap" />}
                     />
                   ))}
@@ -177,81 +187,98 @@ export function Configurator({ brandName, type, sku, btu, price, options }: Conf
           )}
         </div>
 
-        {/* 2 — add-ons */}
+        {/* 2 — add-ons (optional, folded until wanted) */}
         {hasInstall && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h3 className="text-h3">2. ตัวเลือกเพิ่มเติม</h3>
-              <p className="mt-1 text-small text-ink-2">เลือกเฉพาะที่ต้องใช้ ช่างยืนยันระยะและงานจริงหน้างานอีกครั้งก่อนทำ</p>
+          <AccordionItem
+            variant="card"
+            title={
+              <>
+                {`ตัวเลือกเพิ่มเติม (ไม่บังคับ) · เลือกแล้ว ${picked} รายการ`}
+                <span className="mt-0.5 block text-meta font-normal text-ink-3">ช่างยืนยันระยะและงานจริงหน้างานอีกครั้งก่อนทำ</span>
+              </>
+            }
+          >
+            {/* -mr-8: the accordion keeps a wide right gutter for text answers; option rows use the full card width */}
+            <div className="-mr-8 flex flex-col gap-5">
+              {pkg === 'NONE' ? (
+                <Notice tone="info" size="sm">
+                  เลือกไม่ติดตั้งแล้ว ตัวเลือกวัสดุและงานติดตั้งเพิ่มเติมจึงปิดไว้ เลือกแพ็กเกจติดตั้งด้านบนถ้าต้องการเพิ่ม
+                </Notice>
+              ) : (
+                options.addons.map((g, gi) => {
+                  // the "assessed on site" group: its condition once under the title, rows are just the checkboxes
+                  const survey = g.items.length > 0 && g.items.every(a => a.qty === 'flag');
+                  return (
+                    <section
+                      key={g.group}
+                      aria-labelledby={`${uid}-g${gi}`}
+                      aria-describedby={survey ? `${uid}-g${gi}-hint` : undefined}
+                      className="flex flex-col gap-2"
+                    >
+                      <div>
+                        <h4 id={`${uid}-g${gi}`} className="text-small font-semibold text-ink">
+                          {survey ? g.group.replace(/\s*\(ไม่มีราคาตายตัว\)$/, '') : g.group}
+                        </h4>
+                        {survey && (
+                          <p id={`${uid}-g${gi}-hint`} className="text-meta text-ink-3">
+                            {SURVEY_HINT}
+                          </p>
+                        )}
+                      </div>
+                      <ul className="divide-y divide-line overflow-hidden rounded-control border border-line bg-surface shadow-card">
+                        {g.items.map((a, ii) => {
+                          const k = `${gi}-${ii}`;
+                          const s = stateOf(k);
+                          const item = a.choices[s.choice] ?? a.choices[0];
+                          const note = a.note || optionNote(item.code);
+                          if (a.qty === 'flag') {
+                            return (
+                              <li key={k} className="p-4">
+                                <Checkbox checked={s.on} onChange={e => setState(k, { on: e.target.checked })} label={item.name} />
+                              </li>
+                            );
+                          }
+                          const many = a.choices.length > 1;
+                          return (
+                            <li key={k} className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-5">
+                              <div className="flex min-w-0 flex-col gap-1.5">
+                                {many ? (
+                                  <Field label={choiceLabel(a)}>
+                                    <Select value={s.choice} onChange={e => setState(k, { choice: +e.target.value })}>
+                                      {a.choices.map((c, ci) => (
+                                        <option key={c.code} value={ci}>
+                                          {shortName(c.name)} · {baht(c.ex ?? 0)} / {c.unit}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  </Field>
+                                ) : (
+                                  <p className="font-medium leading-snug text-ink">{item.name}</p>
+                                )}
+                                <p className="text-small text-ink-2">
+                                  <Price amount={item.ex} size="sm" vat={false} className="font-semibold" /> / {item.unit}
+                                  <span className="text-ink-3"> · ก่อน VAT</span>
+                                </p>
+                                {note && <p className="text-meta text-ink-3">{note}</p>}
+                              </div>
+                              <Stepper
+                                label={`จำนวน ${shortName(item.name)}`}
+                                value={s.qty}
+                                onChange={n => setState(k, { qty: n })}
+                                min={0}
+                                max={99}
+                                unit={item.unit ?? undefined}
+                              />
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  );
+                })
+              )}
             </div>
-            {pkg === 'NONE' ? (
-              <Notice tone="info" size="sm">
-                เลือกไม่ติดตั้งแล้ว ตัวเลือกวัสดุและงานติดตั้งเพิ่มเติมจึงปิดไว้ เลือกแพ็กเกจติดตั้งด้านบนถ้าต้องการเพิ่ม
-              </Notice>
-            ) : (
-              options.addons.map((g, gi) => (
-                <section key={g.group} aria-labelledby={`${uid}-g${gi}`} className="flex flex-col gap-2">
-                  <h4 id={`${uid}-g${gi}`} className="text-small font-semibold text-ink">
-                    {g.group}
-                  </h4>
-                  <ul className="divide-y divide-line overflow-hidden rounded-control border border-line bg-surface shadow-card">
-                    {g.items.map((a, ii) => {
-                      const k = `${gi}-${ii}`;
-                      const s = stateOf(k);
-                      const item = a.choices[s.choice] ?? a.choices[0];
-                      const note = a.note || optionNote(item.code);
-                      if (a.qty === 'flag') {
-                        return (
-                          <li key={k} className="p-4">
-                            <Checkbox
-                              checked={s.on}
-                              onChange={e => setState(k, { on: e.target.checked })}
-                              label={item.name}
-                              description="ไม่มีราคาตายตัว ทีมแจ้งราคาก่อนทำ"
-                              aside={<Badge tone="warn">ประเมินหน้างาน</Badge>}
-                            />
-                          </li>
-                        );
-                      }
-                      const many = a.choices.length > 1;
-                      return (
-                        <li key={k} className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-5">
-                          <div className="flex min-w-0 flex-col gap-1.5">
-                            {many ? (
-                              <Field label={choiceLabel(a)}>
-                                <Select value={s.choice} onChange={e => setState(k, { choice: +e.target.value })}>
-                                  {a.choices.map((c, ci) => (
-                                    <option key={c.code} value={ci}>
-                                      {shortName(c.name)} · {baht(c.ex ?? 0)} / {c.unit}
-                                    </option>
-                                  ))}
-                                </Select>
-                              </Field>
-                            ) : (
-                              <p className="font-medium leading-snug text-ink">{item.name}</p>
-                            )}
-                            <p className="text-small text-ink-2">
-                              <Price amount={item.ex} size="sm" vat={false} className="font-semibold" /> / {item.unit}
-                              <span className="text-ink-3"> · ก่อน VAT</span>
-                            </p>
-                            {note && <p className="text-meta text-ink-3">{note}</p>}
-                          </div>
-                          <Stepper
-                            label={`จำนวน ${shortName(item.name)}`}
-                            value={s.qty}
-                            onChange={n => setState(k, { qty: n })}
-                            min={0}
-                            max={99}
-                            unit={item.unit ?? undefined}
-                          />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))
-            )}
-          </div>
+          </AccordionItem>
         )}
       </div>
 
@@ -306,13 +333,31 @@ export function Configurator({ brandName, type, sku, btu, price, options }: Conf
         </div>
 
         <div className="flex flex-col gap-3">
-          <AddToQuote lines={lines} variant="primary" size="lg" fullWidth label="ใส่ใบเสนอราคา" />
-          <Button href="/quote/" variant="quiet" icon="quote">
-            ดูใบเสนอราคา
-          </Button>
+          <div ref={inlineAddRef} data-page-cta className="flex flex-col gap-3">
+            <AddToQuote lines={lines} variant="primary" size="lg" fullWidth label="ใส่ใบเสนอราคา" />
+          </div>
+          {/* once these lines are in the quote, AddToQuote shows its own "ดูใบเสนอราคา" */}
+          {!inQuote && (
+            <Button href="/quote/" variant="quiet" icon="quote">
+              ดูใบเสนอราคา
+            </Button>
+          )}
           <p className="text-meta text-ink-3">ยืนยันสต็อกก่อนสั่ง · ทีมยืนยันราคาและรายการในใบเสนอราคา</p>
         </div>
       </Card>
+
+      <ActionDock
+        watch={buyRef}
+        hideWhen={inlineAddRef}
+        label="สรุปราคาและใส่ใบเสนอราคา"
+        summary={
+          <span className="flex flex-col">
+            <span className="text-meta text-ink-3">รวมก่อน VAT</span>
+            <Price amount={bd.ex} size="sm" vat={false} tone="brand" />
+          </span>
+        }
+        action={<AddToQuote lines={lines} size="sm" variant="primary" label="ใส่ใบเสนอราคา" />}
+      />
     </div>
   );
 }

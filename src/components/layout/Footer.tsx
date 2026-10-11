@@ -9,14 +9,6 @@ import { Container } from '@/components/ui/Container';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { ThemeSwitch } from './ThemeSwitch';
 
-/** Footer list labels where the short menu label needs its noun. */
-const FULL_LABEL: Record<string, string> = {
-  '/installation/': 'ติดตั้งแอร์',
-  '/repair/': 'ซ่อมแอร์',
-  '/business/': 'ลูกค้าองค์กร',
-  '/prices/': 'ค่าบริการทั้งหมด',
-};
-
 function FooterHeading({ children }: { children: ReactNode }) {
   return <h2 className="mb-4 font-sans text-small font-semibold text-ink">{children}</h2>;
 }
@@ -74,17 +66,17 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Pages */}
-          <nav aria-label="บริการ">
+          {/* Pages — #site-map is also where the MobileBar's "เมนู" jumps before the page's script has loaded */}
+          <nav id="site-map" aria-label="บริการ" className="scroll-mt-header">
             <FooterHeading>บริการ</FooterHeading>
             <ul className="grid gap-0.5">
               {NAV.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="inline-flex min-h-10 items-center text-small text-ink-2 underline-offset-4 hover:text-brand hover:underline"
+                    className="inline-flex min-h-11 items-center text-small text-ink-2 underline-offset-4 hover:text-brand hover:underline"
                   >
-                    {FULL_LABEL[item.href] ?? item.th}
+                    {item.full ?? item.th}
                   </Link>
                 </li>
               ))}
@@ -97,9 +89,9 @@ export function Footer() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="inline-flex min-h-10 items-center text-small text-ink-2 underline-offset-4 hover:text-brand hover:underline"
+                    className="inline-flex min-h-11 items-center text-small text-ink-2 underline-offset-4 hover:text-brand hover:underline"
                   >
-                    {item.th}
+                    {item.full ?? item.th}
                   </Link>
                 </li>
               ))}

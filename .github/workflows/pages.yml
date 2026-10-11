@@ -26,6 +26,9 @@ jobs:
     env:
       NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
       NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+      # Request inbox (Google Apps Script web app /exec URL, see backend/README.md): repository variable FORM_ENDPOINT
+      # (Settings → Secrets and variables → Actions → Variables). Not set → empty → every form keeps the honest hand-off.
+      NEXT_PUBLIC_FORM_ENDPOINT: ${{ vars.FORM_ENDPOINT }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

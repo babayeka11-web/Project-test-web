@@ -11,9 +11,10 @@ import { SectorIcon } from '@/components/business/SectorIcon';
 import { SectorPanel } from '@/components/business/SectorPanel';
 import { sampleContract, scopeText, sectorAddOns, SECTORS, volumeBenefits } from '@/components/business/sectors';
 import { YearPlan } from '@/components/business/YearPlan';
+import { RelatedGuides } from '@/components/knowledge/RelatedGuides';
 import { COMPANY } from '@/lib/domain/company';
 import { NOTES } from '@/lib/domain/constants';
-import { CLEAN_PKG_IDS, startAt } from '@/lib/domain/cleaning';
+import { CLEAN_PKG_IDS, PKG_TH, startAt } from '@/lib/domain/cleaning';
 import { estimateContract, PRESETS } from '@/lib/domain/contract';
 import { baht, up100 } from '@/lib/domain/format';
 import { getCleanRates, getCleanRateTable } from '@/lib/domain/pricebook';
@@ -76,7 +77,6 @@ export default function BusinessPage() {
     <>
       <PageHeader
         breadcrumbs={[{ label: 'หน้าแรก', href: '/' }, { label: 'องค์กร' }]}
-        eyebrow="สำหรับองค์กร"
         title={
           <>
             <span className="whitespace-nowrap">สัญญาล้างแอร์รายปี</span> <span className="whitespace-nowrap">สำหรับองค์กร</span>
@@ -114,7 +114,7 @@ export default function BusinessPage() {
                 <dt className="text-ink-2">กำลังทีมต่อรอบ</dt>
                 <dd className="text-end font-semibold">≈ {example.teamDaysPerVisit} ทีม-วัน</dd>
                 <dt className="text-ink-2">แพ็กเกจ</dt>
-                <dd className="text-end font-semibold">Standard Care</dd>
+                <dd className="text-end font-semibold">{PKG_TH['Standard Care'].th}</dd>
               </dl>
               <p className="text-meta text-ink-3">{NOTES.estimate}</p>
             </Card>
@@ -124,7 +124,6 @@ export default function BusinessPage() {
 
       <Section
         id="sectors"
-        eyebrow="ประเภทองค์กร"
         title="เลือกประเภทองค์กรของคุณ"
         lead="แต่ละที่มีเรื่องที่กังวลต่างกัน ดูว่าบริษัททำอะไรให้ได้บ้าง พร้อมตัวอย่างงบรายปีที่คำนวณจากราคามาตรฐาน"
       >
@@ -144,7 +143,6 @@ export default function BusinessPage() {
 
         <Section
           id="packages"
-          eyebrow="แพ็กเกจ"
           title="แพ็กเกจและรายงานที่ได้รับ"
           lead="ทุกแพ็กเกจมีเอกสารส่งมอบ ต่างกันที่ความละเอียดของรายงาน ระยะรับประกัน และการดูแลหลังงาน"
         >
@@ -154,7 +152,6 @@ export default function BusinessPage() {
         <Section
           id="plan"
           tone="soft"
-          eyebrow="แผนงาน"
           title="แผนล้างตลอดปี"
           lead="ดูว่าเดือนไหนทีมเข้า รอบไหนเป็นล้างใหญ่ และงบสะสมถึงปลายปีเท่าไร ตามจำนวนเครื่องที่ใส่ไว้ในเครื่องคำนวณ"
         >
@@ -164,7 +161,6 @@ export default function BusinessPage() {
 
       <Section
         id="procurement"
-        eyebrow="ฝ่ายจัดซื้อ"
         title="สิ่งที่ฝ่ายจัดซื้อได้"
         lead="เอกสารและการตั้งค่าที่ฝ่ายจัดซื้อ ฝ่ายอาคาร และผู้ตรวจสอบมักต้องใช้ ป้ายแต่ละใบบอกว่ามีอยู่แล้วหรือตกลงกันในสัญญา"
       >
@@ -174,12 +170,14 @@ export default function BusinessPage() {
         </Notice>
       </Section>
 
+      <RelatedGuides page="/business/" tone="soft" />
+
       <CtaBand
         title="ขอใบเสนอราคาสัญญาล้างแอร์รายปี"
         lead="บอกประเภทอาคาร จำนวนเครื่อง และพื้นที่ ทีมขายสำรวจหน้างานแล้วออกใบเสนอราคาเป็นทางการให้"
         actions={
           <>
-            <Button href="/contact/?topic=contract" size="lg" icon="chat">
+            <Button data-page-cta href="/contact/?topic=contract" size="lg" icon="chat">
               คุยกับทีมขายองค์กร
             </Button>
             <Button href="/quote/" size="lg" variant="secondary" icon="quote">

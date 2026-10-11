@@ -123,6 +123,16 @@ export const lineText = (l: CartLine): string => {
   return `• ${l.name}${l.detail ? ` (${l.detail})` : ''} × ${l.qty}${amt == null ? ` — ${NOTES.survey}` : ` — ${baht(amt)}`}`;
 };
 
+/** One quote line for the short LINE message: name and quantity, no detail or amount (the full summary has those). */
+export const lineBrief = (l: Pick<CartLine, 'name' | 'qty'>): string => `${l.name}${l.qty > 1 ? ` × ${l.qty}` : ''}`;
+
+/** The area in a few words for the LINE message: 'เขตจอมทอง' · 'อ.บางพลี จ.สมุทรปราการ' (or the typed text, cut short). */
+export function areaShort(zone: Zone | null, zoneInput: string): string {
+  if (zone?.district) return zone.province === 'กรุงเทพมหานคร' ? `เขต${zone.district}` : `อ.${zone.district} จ.${zone.province}`;
+  const t = (zoneInput || zone?.match || '').trim();
+  return t.length > 32 ? `${t.slice(0, 31)}…` : t;
+}
+
 /** Area line for the summary ('' when no area). */
 export function areaText(zone: Zone | null, zoneInput: string): string {
   const where = zoneInput || zone?.match || '';

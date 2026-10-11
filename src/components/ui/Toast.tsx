@@ -1,9 +1,11 @@
 'use client';
 // Short confirmations: toast('เพิ่มในใบเสนอราคาแล้ว', { action: { label: 'ดูใบเสนอราคา', href: '/quote/' } }).
 // <Toaster /> is mounted once in the root layout. Toasts are announced politely (aria-live), never take focus,
-// stay 4.5 s (7 s with an action), pause while hovered or focused, and sit above the phone MobileBar.
+// stay 4.5 s (7 s with an action), pause while hovered or focused, and sit above the phone MobileBar. They never cover
+// the focused control: while any is shown, --toast-h on <html> adds their height to the page's scroll-padding-bottom,
+// and a toast that appears over the focused control scrolls that control clear.
 import Link from 'next/link';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ComponentProps } from 'react';
 import { cn } from './cn';
 import { Icon, type IconName } from './Icon';
 
@@ -73,6 +75,11 @@ const TONE_COLOR: Record<ToastTone, string> = {
   bad: 'text-[color-mix(in_oklab,var(--color-bad)_45%,var(--color-bg))]',
 };
 
+/** next/link for pages; a native <a> for a same-page "#…" so the browser's scroll lands it (see Button). */
+function ActionLink({ href, ...rest }: ComponentProps<typeof Link> & { href: string }) {
+  return href.startsWith('#') ? <a href={href} {...(rest as ComponentProps<'a'>)} /> : <Link href={href} {...rest} />;
+}
+
 function ToastView({ t }: { t: ToastItem }) {
   const [paused, setPaused] = useState(false);
   const remaining = useRef(t.duration);
@@ -104,7 +111,7 @@ function ToastView({ t }: { t: ToastItem }) {
       <p className="min-w-0 flex-1 py-1 font-medium leading-snug">{t.message}</p>
       {t.action &&
         (t.action.href ? (
-          <Link
+          <ActionLink
             href={t.action.href}
             onClick={() => {
               t.action?.onClick?.();
@@ -113,7 +120,7 @@ function ToastView({ t }: { t: ToastItem }) {
             className="pressable inline-flex min-h-10 shrink-0 items-center rounded-full bg-bg/12 px-3.5 font-semibold text-bg no-underline hover:bg-bg/20"
           >
             {t.action.label}
-          </Link>
+          </ActionLink>
         ) : (
           <button
             type="button"
@@ -141,9 +148,46 @@ function ToastView({ t }: { t: ToastItem }) {
 /** Mount once (root layout). */
 export function Toaster() {
   const list = useSyncExternalStore(subscribe, () => items, () => EMPTY);
+  const listRef = useRef<HTMLOListElement>(null);
+  const shown = useRef(0);
+  const keys = list.map((t) => `${t.id}-${t.instance}`).join(' ');
+
+  // --toast-h = the stack's height + its 0.75rem gap, while there are toasts
+  useEffect(() => {
+    const ol = listRef.current;
+    const html = document.documentElement;
+    const count = keys ? keys.split(' ').length : 0;
+    const added = count > shown.current;
+    shown.current = count;
+    if (!ol || !keys) {
+      html.style.removeProperty('--toast-h');
+      return;
+    }
+    const publish = () => html.style.setProperty('--toast-h', `${Math.ceil(ol.getBoundingClientRect().height) + 12}px`);
+    publish();
+    // a new toast on top of the focused control (e.g. "ใส่ใบเสนอราคา" just above the MobileBar): move the control up
+    const el = document.activeElement;
+    if (added && el instanceof HTMLElement && el !== document.body && !ol.contains(el)) {
+      const a = el.getBoundingClientRect();
+      const b = ol.getBoundingClientRect();
+      if (a.bottom > b.top && a.top < b.bottom && a.right > b.left && a.left < b.right) el.scrollIntoView({ block: 'nearest' });
+    }
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(publish);
+    ro.observe(ol);
+    return () => ro.disconnect();
+  }, [keys]);
+
+  useEffect(
+    () => () => {
+      document.documentElement.style.removeProperty('--toast-h');
+    },
+    [],
+  );
+
   return (
     <section aria-label="การแจ้งเตือน" className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4 bottom-[calc(var(--mobilebar-h)+env(safe-area-inset-bottom,0px)+0.75rem)] md:bottom-6">
-      <ol aria-live="polite" aria-relevant="additions text" className="flex w-full max-w-[26rem] flex-col gap-2">
+      <ol ref={listRef} aria-live="polite" aria-relevant="additions text" className="flex w-full max-w-[26rem] flex-col gap-2">
         {list.map((t) => (
           <ToastView key={`${t.id}-${t.instance}`} t={t} />
         ))}

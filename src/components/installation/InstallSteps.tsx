@@ -25,12 +25,14 @@ export function InstallSteps() {
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-wrap items-end gap-x-10 gap-y-5">
-        <div className="flex min-w-0 flex-col gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto">
           <span id={`${uid}-t`} className="text-small font-semibold text-ink">
             ประเภทแอร์
           </span>
           <SegmentedControl
             labelledBy={`${uid}-t`}
+            fullWidth
+            size="sm"
             value={type}
             onChange={setType}
             options={TYPES.map(t => ({ value: t, label: TYPE_BY_ID[t].th }))}

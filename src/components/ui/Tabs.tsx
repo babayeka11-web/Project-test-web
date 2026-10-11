@@ -1,6 +1,8 @@
 'use client';
 // Tabs (WAI-ARIA tabs pattern, automatic activation): one tab stop, arrow keys move between tabs, Home/End jump.
 // Every panel is rendered into the static HTML (inactive ones `hidden`) so content stays indexable.
+// On phones (< 640px) tabs that do not fit wrap onto extra rows so none is hidden off-screen (a row that fits is
+// unchanged); wider screens scroll a list that is too wide sideways, faded at the edge that has more.
 import { useCallback, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { cn } from './cn';
 import { Icon, type IconName } from './Icon';
@@ -48,20 +50,35 @@ export function Tabs({
   );
   const listRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [bar, setBar] = useState<{ x: number; w: number } | null>(null);
+  // y: the indicator sits under the selected tab's own row when the list wraps
+  const [bar, setBar] = useState<{ x: number; y: number; w: number } | null>(null);
+  // which edges still have tabs scrolled out of view (drives the edge fade)
+  const [more, setMore] = useState({ start: false, end: false });
 
   const measure = useCallback(() => {
     const el = tabRefs.current[index];
-    if (el) setBar({ x: el.offsetLeft, w: el.offsetWidth });
+    if (el) setBar({ x: el.offsetLeft, y: el.offsetTop + el.offsetHeight - 2, w: el.offsetWidth });
+    const list = listRef.current;
+    if (list) {
+      const start = list.scrollLeft > 1;
+      const end = list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
+      setMore((m) => (m.start === start && m.end === end ? m : { start, end }));
+    }
   }, [index]);
 
   useLayoutEffect(() => {
     measure();
     const list = listRef.current;
     if (!list || typeof ResizeObserver === 'undefined') return;
+    // the tabs too: a clamped list keeps its size when its labels grow (web font swap), the tabs do not
     const ro = new ResizeObserver(measure);
     ro.observe(list);
-    return () => ro.disconnect();
+    tabRefs.current.forEach((el) => el && ro.observe(el));
+    list.addEventListener('scroll', measure, { passive: true });
+    return () => {
+      ro.disconnect();
+      list.removeEventListener('scroll', measure);
+    };
   }, [measure]);
 
   const select = (i: number, focus = false) => {
@@ -89,6 +106,7 @@ export function Tabs({
   };
 
   const line = variant === 'line';
+  const fade = more.start || more.end ? edgeFade(more.start, more.end) : undefined;
 
   return (
     <div className={className}>
@@ -96,9 +114,14 @@ export function Tabs({
         ref={listRef}
         role="tablist"
         aria-label={label}
+        style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
         className={cn(
-          'no-scrollbar relative flex max-w-full overflow-x-auto',
+          // scroll-px keeps a tab scrolled into view by the keyboard clear of the faded edge
+          'no-scrollbar relative flex max-w-full scroll-px-10 overflow-x-auto',
           line ? 'gap-1 border-b border-line' : 'gap-2 rounded-full bg-surface-2 p-1',
+          'max-sm:flex-wrap max-sm:overflow-visible',
+          // pill: half the one-row height, so a single row keeps its pill shape and wrapped rows get soft corners
+          !line && 'max-sm:rounded-[1.625rem]',
         )}
       >
         {items.map((t, i) => {
@@ -126,6 +149,11 @@ export function Tabs({
                     : 'bg-surface text-brand shadow-card'
                   : 'text-ink-2 hover:text-ink',
                 line && selected && !bar && 'shadow-[inset_0_-2px_0_var(--color-brand)]',
+                // Windows High Contrast drops backgrounds and the sliding bar: mark the selected tab another way
+                selected &&
+                  (line
+                    ? 'forced-colors:underline forced-colors:decoration-2 forced-colors:underline-offset-8'
+                    : 'forced-colors:forced-color-adjust-none forced-colors:bg-[SelectedItem] forced-colors:text-[SelectedItemText]'),
               )}
             >
               {t.icon && <Icon name={t.icon} size={18} />}
@@ -146,8 +174,8 @@ export function Tabs({
         {line && bar && (
           <span
             aria-hidden
-            className="absolute bottom-0 left-0 h-0.5 rounded-full bg-brand transition-[transform,width] duration-250 ease-air"
-            style={{ width: bar.w, transform: `translateX(${bar.x}px)` }}
+            className="absolute left-0 top-0 h-0.5 rounded-full bg-brand transition-[transform,width] duration-250 ease-air forced-colors:hidden"
+            style={{ width: bar.w, transform: `translate(${bar.x}px, ${bar.y}px)` }}
           />
         )}
       </div>
@@ -166,4 +194,9 @@ export function Tabs({
       ))}
     </div>
   );
+}
+
+/** Mask that fades the list out over 2.5rem at each edge that has more tabs beyond it. */
+function edgeFade(start: boolean, end: boolean) {
+  return `linear-gradient(to right, ${start ? 'transparent, black 2.5rem' : 'black'}, ${end ? 'black calc(100% - 2.5rem), transparent' : 'black'})`;
 }

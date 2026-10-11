@@ -5,6 +5,7 @@ import { AreaChecker } from '@/components/area/AreaChecker';
 import { MapPin } from '@/components/area/MapPin';
 import { provinceReach, serviceMap } from '@/components/area/map-geo';
 import { ServiceMap } from '@/components/area/ServiceMap';
+import { RelatedGuides } from '@/components/knowledge/RelatedGuides';
 import type { ReactNode } from 'react';
 import { Badge, Button, Card, CtaBand, Icon, Notice, PageHeader, Price, Section, SectionHeading, Table } from '@/components/ui';
 import type { IconName } from '@/components/ui';
@@ -209,12 +210,14 @@ export default function AreaPage() {
         />
       </Section>
 
+      <RelatedGuides page="/area/" tone="soft" spacing="compact" />
+
       <CtaBand
         title="ไม่แน่ใจว่าที่อยู่ของคุณอยู่ในพื้นที่หรือไม่"
         lead="บอกที่อยู่หน้างานกับทีมได้เลย ทีมตรวจระยะจริงและแจ้งค่าเดินทางในใบเสนอราคา"
         actions={
           <>
-            <Button href="/cleaning/#book" size="lg" icon="clean">
+            <Button data-page-cta href="/cleaning/#book" size="lg" icon="clean">
               จองล้างแอร์
             </Button>
             <Button href="/contact/" size="lg" variant="ghost" icon="chat">

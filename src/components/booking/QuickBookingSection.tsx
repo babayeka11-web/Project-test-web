@@ -5,6 +5,8 @@ import { Section, type SectionTone } from '@/components/ui';
 import { QUICK_PKGS } from '@/lib/domain/cleaning';
 import { getCleanRateTable } from '@/lib/domain/pricebook';
 
+const EYEBROW = 'จองล้างแอร์';
+
 export function QuickBookingSection({
   id = 'book',
   title = 'จองล้างแอร์ เห็นราคารวมก่อนจอง',
@@ -17,8 +19,10 @@ export function QuickBookingSection({
   tone?: SectionTone;
 }) {
   const table = getCleanRateTable(QUICK_PKGS);
+  // the eyebrow names the topic only when the title does not already say it (UI.md §5)
+  const eyebrow = title.includes(EYEBROW) ? undefined : EYEBROW;
   return (
-    <Section id={id} eyebrow="จองล้างแอร์" title={title} lead={lead} tone={tone}>
+    <Section id={id} eyebrow={eyebrow} title={title} lead={lead} tone={tone}>
       <QuickBooking table={table} />
     </Section>
   );

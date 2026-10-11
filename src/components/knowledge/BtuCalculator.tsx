@@ -304,7 +304,7 @@ export function BtuCalculator({ catalog }: BtuCalculatorProps) {
               <p className="text-meta text-ink-3">ปัดเป็นหลักร้อย BTU · ทีมช่างยืนยันขนาดจริงตอนสำรวจหน้างาน</p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div data-page-cta className="flex flex-wrap gap-3">
               {calc.rec.project ? (
                 <Button href="/contact/" icon="chat">
                   ปรึกษาทีมโครงการ

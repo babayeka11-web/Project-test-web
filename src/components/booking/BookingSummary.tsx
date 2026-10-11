@@ -1,7 +1,7 @@
 'use client';
 // Price summary of the quick booking: what is chosen, travel, rush, the total (aria-live) and the two ways to continue.
 // Everything is computed by cleaningQuote() in the domain layer; this file only presents it.
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Badge, Button, Card, Notice, Price } from '@/components/ui';
 import { LEVEL_TH, PKG_TH, type CleanSelection, type CleaningQuote, type QuickType } from '@/lib/domain/cleaning';
 import { NOTES } from '@/lib/domain/constants';
@@ -32,6 +32,7 @@ export function BookingSummary({
   lineUrl,
   onBook,
   onAddOne,
+  ctaRef,
 }: {
   q: CleaningQuote;
   sel: CleanSelection;
@@ -43,11 +44,18 @@ export function BookingSummary({
   lineUrl: string;
   onBook: () => void;
   onAddOne: (t: QuickType) => void;
+  /** wrapper of the in-flow "จองล้างแอร์" (the phone dock hides while it is on screen) */
+  ctaRef?: Ref<HTMLDivElement>;
 }) {
   const t = q.totals;
   const ready = q.units > 0 && q.lines.length > 0;
   const unpriced = q.rows.some(r => r.amount == null);
   const rushFee = q.lines.find(l => l.group === 'rush')?.unitEx ?? RUSH_FEE_EX;
+  // the last unit the offer asks for removes the offer (and its button): hand focus to the next step, not to <body>
+  const addOne = (fill: NonNullable<CleaningQuote['fill']>) => {
+    onAddOne(fill.type);
+    if (fill.need <= 1) requestAnimationFrame(() => document.getElementById('qb-book')?.focus());
+  };
 
   return (
     <Card id="qb-summary" padding="md" className="scroll-mt-header shadow-lift" aria-labelledby="qb-summary-title">
@@ -120,16 +128,19 @@ export function BookingSummary({
             </div>
           </div>
 
-          {q.fill && (
+          {/* the top-up offer only when it is a small step; otherwise just the rule, without a button */}
+          {q.fill && q.fill.need <= 2 ? (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-control border border-ok/25 bg-ok-soft p-3">
               <p className="min-w-0 flex-1 basis-44 text-small text-ink">
                 เพิ่มแอร์{q.fill.th}อีก {q.fill.need} เครื่อง ยอดงานล้างถึง {baht(minBill)} ไม่มีค่าเดินทาง
               </p>
-              <Button type="button" size="sm" variant="soft" icon="plus" aria-label={`เพิ่มแอร์${q.fill.th} 1 เครื่อง`} onClick={() => onAddOne(q.fill!.type)}>
+              <Button type="button" size="sm" variant="soft" icon="plus" aria-label={`เพิ่มแอร์${q.fill.th} 1 เครื่อง`} onClick={() => addOne(q.fill!)}>
                 +1 เครื่อง
               </Button>
             </div>
-          )}
+          ) : q.fill && t.travel > 0 ? (
+            <p className="mt-3 text-meta text-ink-3">ยอดงานล้างถึง {baht(minBill)} ต่อการเข้างาน ไม่มีค่าเดินทาง</p>
+          ) : null}
 
           <div className="mt-4 grid gap-3 empty:hidden">
             {zone?.tier === 'out' && (
@@ -154,9 +165,11 @@ export function BookingSummary({
       <p className="mt-4 text-meta text-ink-3">{NOTES.estimate}</p>
 
       <div className="mt-5 grid gap-3">
-        <Button type="button" variant="primary" size="lg" fullWidth icon="clean" disabled={!ready} aria-describedby="qb-book-note" onClick={onBook}>
-          จองล้างแอร์ · กรอกชื่อและเบอร์
-        </Button>
+        <div ref={ctaRef} data-page-cta>
+          <Button id="qb-book" type="button" variant="primary" size="lg" fullWidth icon="clean" disabled={!ready} aria-describedby="qb-book-note" onClick={onBook}>
+            จองล้างแอร์ · กรอกชื่อและเบอร์
+          </Button>
+        </div>
         {q.units > 0 ? (
           <Button href={lineUrl} variant="ghost" fullWidth icon="chat">
             ส่งทาง LINE

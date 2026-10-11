@@ -360,7 +360,7 @@ export function TradeIn({ data }: { data: TradeInData }) {
           {r.special && <Notice tone="info" size="sm">{NOTES.volume}</Notice>}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" icon="quote" onClick={requestAssessment}>
+            <Button data-page-cta variant="primary" icon="quote" onClick={requestAssessment}>
               ขอประเมินมูลค่าเทิร์น
             </Button>
             <Button variant="soft" href={productsHref} iconEnd="arrow-right">

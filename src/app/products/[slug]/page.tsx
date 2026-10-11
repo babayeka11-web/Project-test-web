@@ -11,6 +11,7 @@ import { NOTES } from '@/lib/domain/constants';
 import { baht, btuFmt, EX_TH } from '@/lib/domain/format';
 import { getCatalog, getSeriesBySlug, getSeriesSlugs } from '@/lib/domain/pricebook';
 import { TYPE_BY_ID } from '@/lib/domain/types';
+import { SITE_URL } from '@/lib/site';
 
 export const dynamicParams = false;
 export const generateStaticParams = () => getSeriesSlugs().map(slug => ({ slug }));
@@ -52,8 +53,23 @@ export default async function SeriesPage({ params }: Props) {
     return { k, href: modelPath(m.slug, slugs[i]), total: std != null ? k.price + std : null };
   });
 
+  // the sizes of this series as a list of their own pages (each model page carries the Product data)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `ขนาดและราคาของ ${name}`,
+    numberOfItems: rows.length,
+    itemListElement: rows.map((r, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: `${SITE_URL}${r.href}`,
+      name: `${m.brandName} ${r.k.sku} ${btuFmt(r.k.btu)}`,
+    })),
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <PageHeader
         breadcrumbs={[{ label: 'หน้าแรก', href: '/' }, { label: 'แอร์ทุกรุ่น', href: productsPath }, { label: name }]}
         eyebrow={`แอร์${type.th}`}
@@ -96,8 +112,9 @@ export default async function SeriesPage({ params }: Props) {
               price: <Price amount={r.k.price} size="sm" vat={false} />,
               total: r.total != null ? <Price amount={r.total} size="sm" vat={false} /> : <span className="text-ink-2">สำรวจหน้างานก่อน</span>,
               go: (
-                <Button href={r.href} variant="soft" size="sm" aria-label={`ดูรุ่น ${r.k.sku} ${btuFmt(r.k.btu)}`}>
-                  ดูรุ่นนี้
+                // the visible words first, then which model (WCAG 2.5.3: the name contains what is on screen)
+                <Button href={r.href} variant="soft" size="sm">
+                  ดูรุ่นนี้<span className="sr-only"> {r.k.sku} {btuFmt(r.k.btu)}</span>
                 </Button>
               ),
             }))}
@@ -125,8 +142,8 @@ export default async function SeriesPage({ params }: Props) {
                       'ติดตั้ง: สำรวจหน้างานก่อนเสนอราคา'
                     )}
                   </p>
-                  <Button href={r.href} variant="soft" fullWidth aria-label={`ดูรุ่น ${r.k.sku} ${btuFmt(r.k.btu)}`}>
-                    ดูรุ่นนี้
+                  <Button href={r.href} variant="soft" fullWidth>
+                    ดูรุ่นนี้<span className="sr-only"> {r.k.sku} {btuFmt(r.k.btu)}</span>
                   </Button>
                 </Card>
               </li>
@@ -137,7 +154,7 @@ export default async function SeriesPage({ params }: Props) {
       </Section>
 
       {specs.length > 0 && (
-        <Section id="specs" tone="soft" eyebrow="สเปก" title="สเปกที่ทุกขนาดมีเหมือนกัน" lead="ขนาดเครื่อง น้ำหนัก และท่อน้ำยาแต่ละขนาดต่างกัน ดูได้ในหน้าของแต่ละรุ่น">
+        <Section id="specs" tone="soft" title="สเปกที่ทุกขนาดมีเหมือนกัน" lead="ขนาดเครื่อง น้ำหนัก และท่อน้ำยาแต่ละขนาดต่างกัน ดูได้ในหน้าของแต่ละรุ่น">
           <Card padding="md">
             <dl className="grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2">
               {specs.map(s => (
@@ -181,7 +198,7 @@ export default async function SeriesPage({ params }: Props) {
         lead={`บอกขนาดห้องและการใช้งาน ทีมช่วยเลือกขนาดของ ${name} ให้ และแจ้งราคาติดตั้งตามหน้างานจริง`}
         actions={
           <>
-            <Button href="/knowledge/" variant="primary" icon="thermometer">
+            <Button data-page-cta href="/knowledge/" variant="primary" icon="thermometer">
               หาขนาด BTU ที่เหมาะ
             </Button>
             <Button href="/contact/?topic=buy" variant="secondary" icon="chat">

@@ -2,7 +2,9 @@
 // Annual contract calculator for organisations: units per AC type × visits per year × package × size band (+ one deep
 // clean, optional area, high units). Every number comes from estimateContract() on the standard Pricebook rates and is
 // labelled as an estimate. The inputs live in contract-store so the sector samples and the 12-month plan share them.
-import { useId } from 'react';
+// On phones an ActionDock keeps the yearly figure and "ใส่ใบเสนอราคา" in thumb reach while the controls scroll.
+import { useId, useRef } from 'react';
+import { ActionDock } from '@/components/shared/ActionDock';
 import { AddToQuote } from '@/components/shared/AddToQuote';
 import { AddressPicker } from '@/components/shared/AddressPicker';
 import { TypeArt } from '@/components/shared/TypeArt';
@@ -28,6 +30,8 @@ export function ContractCalculator() {
   const label = state.label ?? 'องค์กรของคุณ';
   const zone = state.zone;
   const normalVisits = est ? Math.max(0, est.visits - (state.deep ? 1 : 0)) : 0;
+  const toolRef = useRef<HTMLDivElement>(null);
+  const resultActionRef = useRef<HTMLDivElement>(null);
 
   const lines = () => {
     if (!est) return [];
@@ -52,7 +56,7 @@ export function ContractCalculator() {
     const text = [
       `สรุปประเมินสัญญาล้างแอร์รายปี (${NOTES.estimate})`,
       `เครื่อง: ${fleet} · รวม ${est.count} เครื่อง · ขนาด${band.th}`,
-      `ความถี่: ปีละ ${est.visits} ครั้ง${state.deep ? ' (ล้างใหญ่ 1 ครั้ง)' : ''} · แพ็กเกจ ${state.pkg}`,
+      `ความถี่: ปีละ ${est.visits} ครั้ง${state.deep ? ' (ล้างใหญ่ 1 ครั้ง)' : ''} · แพ็กเกจ${PKG_TH[state.pkg].th} (${state.pkg})`,
       `ราคาต่อปี ${baht(est.annualEx)} ก่อน VAT · VAT 7% ${baht(est.vat)} · รวม ${baht(est.annualInc)}`,
       `กำลังทีม ≈ ${teamDaysTh(est.teamDaysPerVisit)} ต่อรอบ`,
     ].join('\n');
@@ -65,23 +69,8 @@ export function ContractCalculator() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_28rem]">
+    <div ref={toolRef} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_28rem]">
       <div className="flex min-w-0 flex-col gap-5">
-        {/* phones: the yearly figure stays in view while the controls scroll; tapping it jumps to the summary */}
-        <a
-          href={`#${uid}-result`}
-          className="glass sticky top-header z-10 flex items-center justify-between gap-3 rounded-control border border-line px-4 py-2.5 shadow-card lg:hidden"
-        >
-          <span className="text-small text-ink-2">{est ? `${est.count} เครื่อง · ${est.visits} ครั้ง/ปี` : 'ยังไม่ได้ใส่เครื่อง'}</span>
-          <span className="flex items-center gap-2">
-            {est ? <Price amount={est.annualEx} unit="/ ปี" size="md" tone="brand" /> : null}
-            <span className="inline-flex items-center gap-0.5 text-small font-semibold text-brand">
-              ดูสรุป
-              <Icon name="chevron-down" size={16} />
-            </span>
-          </span>
-        </a>
-
         <Card className="flex flex-col gap-4">
           <div>
             <h3 id={`${uid}-presets`} className="text-h3">
@@ -145,7 +134,7 @@ export function ContractCalculator() {
                   value={p.id}
                   checked={state.pkg === p.id}
                   onChange={() => contractStore.set({ pkg: p.id as CleanPkgId })}
-                  label={`${PKG_TH[p.id].th} · ${p.th}`}
+                  label={PKG_TH[p.id].th}
                   description={p.sub}
                 />
               ))}
@@ -214,7 +203,7 @@ export function ContractCalculator() {
             <>
               <div aria-live="polite" aria-atomic="true" className="flex flex-col gap-1">
                 <p className="text-small text-ink-2">
-                  {est.count} เครื่อง · {est.visits} ครั้ง/ปี · {state.pkg}
+                  {est.count} เครื่อง · {est.visits} ครั้ง/ปี · {PKG_TH[state.pkg].th}
                 </p>
                 <Price amount={est.annualEx} unit="/ ปี" size="xl" tone="brand" stacked />
                 <p className="text-small text-ink-2">
@@ -281,7 +270,7 @@ export function ContractCalculator() {
             </div>
           )}
 
-          <div className="flex flex-col gap-3">
+          <div ref={resultActionRef} className="flex flex-col gap-3">
             <AddToQuote lines={lines} label="ใส่ใบเสนอราคา" size="lg" fullWidth disabled={!est} />
             <Button variant="ghost" icon="copy" fullWidth disabled={!est} onClick={copySummary}>
               คัดลอกสรุป
@@ -290,6 +279,23 @@ export function ContractCalculator() {
           <p className="text-meta text-ink-3">{NOTES.estimate} · อัตรามาตรฐาน ทีมสำรวจหน้างานก่อนยืนยันจำนวนเครื่องและราคา</p>
         </Card>
       </aside>
+
+      {est && (
+        <ActionDock
+          watch={toolRef}
+          hideWhen={resultActionRef}
+          label="งบล้างแอร์ทั้งปีและใส่ใบเสนอราคา"
+          summary={
+            <span className="flex flex-col">
+              <span className="text-meta text-ink-3">
+                {est.count} เครื่อง · {est.visits} ครั้ง/ปี
+              </span>
+              <Price amount={est.annualEx} unit="/ ปี" size="sm" tone="brand" />
+            </span>
+          }
+          action={<AddToQuote lines={lines} label="ใส่ใบเสนอราคา" size="sm" />}
+        />
+      )}
     </div>
   );
 }

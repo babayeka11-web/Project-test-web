@@ -29,8 +29,8 @@ export function PackageCompare({ facts }: { facts: PackageFacts[] }) {
                   <Badge tone="sky" className="self-start">
                     {p.pitch}
                   </Badge>
-                  <h3 className="text-h3">{p.id}</h3>
-                  <p className="text-small text-ink-2">{PKG_TH[p.id].th}</p>
+                  <h3 className="text-h3">{PKG_TH[p.id].th}</h3>
+                  <p className="text-meta text-ink-3">ชื่อในรายงาน {p.id}</p>
                 </div>
                 <p className="flex gap-2.5 rounded-control bg-sky-soft p-3 text-small font-semibold text-brand">
                   <Icon name="document" size={20} className="mt-0.5 shrink-0" />
@@ -63,7 +63,7 @@ export function PackageCompare({ facts }: { facts: PackageFacts[] }) {
         minWidth="44rem"
         columns={[
           { key: 'k', label: 'รายการ', rowHeader: true },
-          ...PKG_INFO.map(p => ({ key: p.id, label: p.id })),
+          ...PKG_INFO.map(p => ({ key: p.id, label: PKG_TH[p.id].th })),
         ]}
         rows={[
           { id: 'c1', k: 'เอกสารหลังล้างปกติ (C1)', ...Object.fromEntries(PKG_INFO.map(p => [p.id, by[p.id]?.docC1])) },

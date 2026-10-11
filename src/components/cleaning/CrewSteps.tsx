@@ -103,7 +103,7 @@ export function CrewSteps() {
               fullWidth
               value={pkg}
               onChange={setPkg}
-              options={QUICK_PKGS.map(p => ({ value: p, label: PKG_TH[p].th, hint: PKG_TH[p].code }))}
+              options={QUICK_PKGS.map(p => ({ value: p, label: PKG_TH[p].th }))}
             />
           </div>
         </Card>

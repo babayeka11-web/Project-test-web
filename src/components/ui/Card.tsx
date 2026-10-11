@@ -25,7 +25,8 @@ export type CardProps = HTMLAttributes<HTMLElement> & {
   padding?: CardPadding;
   /** Hover lift (pointer devices only). Use when the whole card is clickable. */
   interactive?: boolean;
-  /** Makes the whole card a link (next/link). Keep the content short: it is read as one link. */
+  /** Makes the whole card a link (next/link; a plain <a> for a same-page "#…"). Keep the content short: it is read as
+   *  one link. */
   href?: string;
   children?: ReactNode;
 };
@@ -41,10 +42,12 @@ export function Card({ as, tone = 'surface', padding = 'md', interactive, href, 
     className,
   );
   if (href) {
+    // same-page anchors stay native so the browser's own scroll lands them (see Button)
+    const A = href.startsWith('#') ? 'a' : Link;
     return (
-      <Link href={href} className={classes} {...(rest as HTMLAttributes<HTMLAnchorElement>)}>
+      <A href={href} className={classes} {...(rest as HTMLAttributes<HTMLAnchorElement>)}>
         {children}
-      </Link>
+      </A>
     );
   }
   const Tag = as ?? 'div';
