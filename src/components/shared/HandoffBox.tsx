@@ -5,6 +5,7 @@
 // quieter channels (copy · e-mail · copy the reference). The live opening status sits above the actions; while the office
 // is closed the phone steps back and LINE is the way to leave the request. Never claims a send that did not happen, and
 // never promises a response time.
+import Link from 'next/link';
 import { useState, type Ref } from 'react';
 import { Button, Icon, Notice } from '@/components/ui';
 import { COMPANY } from '@/lib/domain/company';
@@ -54,6 +55,13 @@ export function HandoffBox({ kind, result, text, lineText, titleAs: Title = 'h3'
       {sent ? (
         <Notice tone="ok" live="polite">
           เลขอ้างอิง <b className="num whitespace-nowrap">{result.ref}</b> · ทีมติดต่อกลับในเวลาทำการ {COMPANY.hours}
+          <Link
+            href={`/status/?ref=${encodeURIComponent(result.ref)}`}
+            className="mt-1 flex min-h-11 items-center gap-1 font-semibold text-brand underline-offset-4 hover:underline"
+          >
+            ตรวจสถานะคำขอนี้ภายหลัง
+            <Icon name="arrow-right" size={16} />
+          </Link>
         </Notice>
       ) : (
         <Notice tone={result.status === 'failed' ? 'warn' : 'info'} live="polite">

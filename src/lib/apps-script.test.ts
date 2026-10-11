@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { buildSummary, submitRequest, type RequestField, type RequestKind } from './request';
+import { buildSummary, checkStatus, submitRequest, type RequestField, type RequestKind } from './request';
 
 const CODE = readFileSync(fileURLToPath(new URL('../../backend/google-apps-script/Code.gs', import.meta.url)), 'utf8');
 
@@ -23,7 +23,17 @@ const T0 = Date.UTC(2026, 9, 11, 3, 0, 0);
 const MINUTE = 60_000;
 
 type Cell = string;
-type Answer = { ok: boolean; ref?: string; error?: string; duplicate?: boolean; service?: string; version?: string };
+type Answer = {
+  ok: boolean;
+  ref?: string;
+  error?: string;
+  duplicate?: boolean;
+  service?: string;
+  version?: string;
+  kind?: string;
+  status?: string;
+  received?: string;
+};
 type Mail = { to: string; subject: string; body: string; name?: string; replyTo?: string; htmlBody?: string };
 type TextOutput = { content: string; mime: string; getContent(): string; setMimeType(m: string): TextOutput };
 
@@ -246,7 +256,7 @@ function makeEnv(opts: { notifyEmail?: string | null; quota?: number; lockFree?:
       for (const [k, e] of lateCache.splice(0)) cacheData.set(k, e);
     }
   };
-  const get = (): Answer => output(ctx.doGet({ parameter: {} }));
+  const get = (parameter: Record<string, string> = {}): Answer => output(ctx.doGet({ parameter }));
   const sheet = () => sheets.get(SHEET_NAME);
   /** Data rows (the header excluded). */
   const rows = () => (sheet()?.rows ?? []).slice(1);
@@ -331,6 +341,53 @@ describe('doGet', () => {
   it('answers a health check without data', () => {
     expect(env.get()).toEqual({ ok: true, service: 'sbp-requests', version: expect.stringMatching(/^\d+\.\d+\.\d+$/) });
     expect(env.sheet()).toBeUndefined();
+  });
+});
+
+describe('doGet: status look-up', () => {
+  const NOT_FOUND = 'ไม่พบคำขอนี้ ตรวจเลขอ้างอิงและเบอร์โทร 4 ตัวท้ายอีกครั้ง';
+
+  it('answers the status of a saved request when the reference and the last 4 phone digits match, and nothing personal', () => {
+    const ref = nextRef();
+    env.post(booking(ref));
+    const a = env.get({ ref, tel: '5678' });
+    expect(a).toEqual({ ok: true, ref, kind: 'จองคิวงาน', status: 'ใหม่', received: '2026-10-11 10:00' });
+    expect(JSON.stringify(a)).not.toMatch(/สมชาย|0812345678|ลุมพินี/);
+  });
+
+  it('accepts a reference typed in lower case with spaces, and shows the status the team typed', () => {
+    const ref = nextRef();
+    env.post(contact(ref));
+    env.sheet()!.rows[1][10] = 'นัดหมายแล้ว';
+    expect(env.get({ ref: ` ${ref.toLowerCase()} `, tel: '3299' })).toMatchObject({ ok: true, ref, status: 'นัดหมายแล้ว' });
+  });
+
+  it('gives the same answer for a wrong phone and an unknown reference', () => {
+    const ref = nextRef();
+    env.post(booking(ref));
+    expect(env.get({ ref, tel: '0000' })).toEqual({ ok: false, error: NOT_FOUND });
+    expect(env.get({ ref: nextRef(), tel: '5678' })).toEqual({ ok: false, error: NOT_FOUND });
+  });
+
+  it('answers not found before any request was saved, and rejects malformed input without reading the sheet', () => {
+    expect(env.get({ ref: nextRef(), tel: '5678' })).toEqual({ ok: false, error: NOT_FOUND });
+    expect(env.get({ ref: 'R1', tel: '5678' }).ok).toBe(false);
+    expect(env.get({ ref: nextRef(), tel: '12' }).ok).toBe(false);
+    expect(env.sheet()).toBeUndefined();
+  });
+
+  it('limits look-ups per minute for the whole site', () => {
+    const ref = nextRef();
+    env.post(booking(ref));
+    for (let i = 0; i < 30; i++) env.get({ ref, tel: '0000' });
+    expect(env.get({ ref, tel: '5678' }).error).toMatch(/ลองใหม่ในอีก 1 นาที/);
+    env.clock.now += 61_000;
+    expect(env.get({ ref, tel: '5678' }).ok).toBe(true);
+  });
+
+  it('answers ok:false (never throws) when the spreadsheet fails', () => {
+    env.state.sheetError = true;
+    expect(env.get({ ref: nextRef(), tel: '5678' })).toEqual({ ok: false, error: 'ระบบรับคำขอขัดข้องชั่วคราว' });
   });
 });
 
@@ -717,5 +774,43 @@ describe('website → Apps Script', () => {
     const r = await submitRequest('contact', 'R1', CONTACT_FIELDS, 't', { endpoint, fetchImpl: viaScript(env) });
     expect(r).toEqual({ status: 'failed', ref: 'R1', reason: 'เลขอ้างอิงไม่ถูกต้อง' });
     expect(env.rows()).toHaveLength(0);
+  });
+});
+
+describe('website status page → Apps Script', () => {
+  const endpoint = 'https://script.google.com/macros/s/AKfy-test/exec';
+  /** fetch that hands the query to doGet and answers what ContentService produced. */
+  const viaScript = (e: Env) =>
+    (async (url: string) => {
+      const q = Object.fromEntries(new URL(url).searchParams);
+      return new Response(JSON.stringify(e.get(q)), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }) as unknown as typeof fetch;
+
+  it('shows the status of a request that was sent from the website', async () => {
+    const ref = nextRef();
+    await submitRequest('booking', ref, BOOKING_FIELDS, 't', {
+      endpoint,
+      fetchImpl: (async (_u: string, init: RequestInit) =>
+        new Response(JSON.stringify(env.postRaw(String(init.body))), { status: 200 })) as unknown as typeof fetch,
+    });
+    const r = await checkStatus(ref, '5678', { endpoint, fetchImpl: viaScript(env) });
+    expect(r).toEqual({ status: 'found', ref, kind: 'จองคิวงาน', state: 'ใหม่', received: '2026-10-11 10:00' });
+  });
+
+  it('shows the script’s message when nothing matches, and never reads a health check as a status', async () => {
+    expect(await checkStatus(nextRef(), '5678', { endpoint, fetchImpl: viaScript(env) })).toEqual({
+      status: 'notFound',
+      reason: 'ไม่พบคำขอนี้ ตรวจเลขอ้างอิงและเบอร์โทร 4 ตัวท้ายอีกครั้ง',
+    });
+    const health = (async () => new Response(JSON.stringify(env.get()), { status: 200 })) as unknown as typeof fetch;
+    expect((await checkStatus(nextRef(), '5678', { endpoint, fetchImpl: health })).status).toBe('failed');
+  });
+
+  it('is unconfigured without an endpoint and fails softly when the network does', async () => {
+    expect(await checkStatus('SBP-691011-AAAA', '5678', { endpoint: '' })).toEqual({ status: 'unconfigured' });
+    const down = (async () => {
+      throw new TypeError('Failed to fetch');
+    }) as unknown as typeof fetch;
+    expect(await checkStatus('SBP-691011-AAAA', '5678', { endpoint, fetchImpl: down })).toEqual({ status: 'failed', reason: 'เชื่อมต่อระบบไม่ได้' });
   });
 });

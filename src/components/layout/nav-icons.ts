@@ -14,6 +14,7 @@ export const NAV_ICONS: Record<string, IconName> = {
   '/contact/': 'phone',
   '/trade-in/': 'ac',
   '/quote/': 'quote',
+  '/status/': 'search',
 };
 
 /** True when `pathname` is the section `href` or a page inside it (e.g. /products/xyz/ → /products/). */
