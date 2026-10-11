@@ -40,7 +40,8 @@ await step('home: quick booking → quote request → honest hand-off', async pa
   if (!/ล้าง/.test(body)) throw new Error('quote page shows no cleaning line');
   await page.locator('input[name="name"]').fill('ทดสอบ ระบบ');
   await page.locator('input[name="tel"]').fill('0812345678');
-  await page.getByRole('button', { name: /ส่งคำขอ/ }).first().click();
+  // with no form endpoint the honest label is 'สร้างสรุปคำขอ'; with one it is 'ส่งคำขอ'
+  await page.locator('#request').getByRole('button', { name: /ส่งคำขอ|สร้างสรุปคำขอ/ }).first().click();
   await page.waitForTimeout(800);
   const after = await page.locator('main').innerText();
   if (!/SBP-\d{6}-[0-9A-Z]{4}/.test(after)) throw new Error('no reference number after submit');
@@ -78,7 +79,7 @@ await step('prices: tabs + search + add', async page => {
   await page.goto(`${BASE}/prices/?tab=repair`, { waitUntil: 'networkidle' });
   const tabs = await page.getByRole('tab').count();
   const before = await count(page);
-  await page.getByRole('button', { name: /ใส่ใบเสนอราคา|เพิ่ม/ }).first().click();
+  await page.locator('main').getByRole('button', { name: 'ใส่ใบเสนอราคา', exact: true }).first().click();
   await page.waitForTimeout(500);
   return `tabs ${tabs}; header ${before.trim()} → ${(await count(page)).trim()}`;
 });
@@ -102,13 +103,13 @@ await step('area: example place → zone', async page => {
 await step('contact: validation + hand-off', async page => {
   await page.goto(`${BASE}/contact/?topic=vrf`, { waitUntil: 'networkidle' });
   const form = page.locator('form').filter({ has: page.locator('input[name="tel"]') }).first();
-  await form.getByRole('button', { name: /ส่ง/ }).first().click();
+  await form.getByRole('button', { name: /ส่ง|สร้างสรุป/ }).first().click();
   await page.waitForTimeout(300);
   const errs = await form.locator('[id$="-error"]').count();
   await form.locator('input[name="name"]').fill('ทดสอบ');
   await form.locator('input[name="tel"]').fill('021234567');
   await form.locator('textarea').first().fill('สอบถามระบบ VRV สำหรับอาคาร 5 ชั้น');
-  await form.getByRole('button', { name: /ส่ง/ }).first().click();
+  await form.getByRole('button', { name: /ส่ง|สร้างสรุป/ }).first().click();
   await page.waitForTimeout(800);
   const txt = await page.locator('main').innerText();
   if (!/SBP-\d{6}/.test(txt)) throw new Error('no reference number');
