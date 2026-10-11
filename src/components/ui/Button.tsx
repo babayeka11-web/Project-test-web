@@ -1,5 +1,5 @@
 // Buttons and button-styled links. One orange primary (CTA) per view; everything else is secondary/ghost/soft.
-// `href` renders next/link for site pages and a plain <a> for http(s)/tel/mailto/line links.
+// `href` renders next/link for site pages and a plain <a> for same-page "#…" anchors and http(s)/tel/mailto/line links.
 import Link from 'next/link';
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from './cn';
@@ -106,6 +106,15 @@ export function Button({
 
   if (typeof rest.href === 'string') {
     const { href, external, prefetch, ...anchor } = rest as Omit<ButtonAsLink, keyof CommonProps>;
+    // Same-page anchor: the browser scrolls to it (honouring scroll-padding and reduced motion). next/link's own hash
+    // scroll fought the smooth scroll and overshot the target by up to several screens.
+    if (href.startsWith('#')) {
+      return (
+        <a href={href} className={classes} {...anchor}>
+          {content}
+        </a>
+      );
+    }
     if (external || isExternalHref(href)) {
       const newTab = external || /^https?:/i.test(href);
       return (

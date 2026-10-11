@@ -14,6 +14,8 @@ export function CartButton({ showLabel = 'xl', className }: { showLabel?: 'alway
   return (
     <Link
       href="/quote/"
+      // a tooltip for mouse users when the label is hidden (screen readers get the sr-only text below)
+      title={showLabel === 'always' ? undefined : 'ใบเสนอราคา'}
       aria-current={active ? 'page' : undefined}
       className={cn(
         'pressable relative inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-line bg-surface/70 px-3 text-small font-semibold text-ink no-underline hover:border-brand/40 hover:text-brand',

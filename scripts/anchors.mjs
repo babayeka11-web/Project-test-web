@@ -1,6 +1,7 @@
 // Same-page anchor check: every "#…" action in the page hero (PageHeader or the home hero) must land its target just
 // under the sticky header, not scroll past it.
-// usage: node scripts/anchors.mjs [baseUrl=http://localhost:3120]   — exits 1 when a target lands outside 0–300px.
+// usage: node scripts/anchors.mjs [baseUrl=http://localhost:3120] [route …]   — exits 1 when a target lands outside
+// 0–300px. Routes default to the nine pages below.
 // Runs each route at 390×844 (touch phone) and 1366×900, with and without reduced motion.
 // Uses the Playwright + Chromium pre-installed on this machine (never run `playwright install`).
 import { createRequire } from 'node:module';
@@ -8,7 +9,8 @@ const require = createRequire('/opt/node22/lib/node_modules/');
 const { chromium } = require('playwright');
 
 const BASE = (process.argv[2] || 'http://localhost:3120').replace(/\/$/, '');
-const ROUTES = ['/', '/cleaning/', '/installation/', '/repair/', '/products/', '/business/', '/prices/', '/area/', '/knowledge/'];
+const ALL = ['/', '/cleaning/', '/installation/', '/repair/', '/products/', '/business/', '/prices/', '/area/', '/knowledge/'];
+const ROUTES = process.argv.length > 3 ? process.argv.slice(3) : ALL;
 const VIEWPORTS = [
   { name: '390', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
   { name: '1366', viewport: { width: 1366, height: 900 } },
@@ -45,6 +47,17 @@ for (const vp of VIEWPORTS) {
           await page.waitForTimeout(150);
           await link.click();
           await page.waitForTimeout(1500);
+          // a busy main thread (3D hero on a software GPU) can slow a smooth scroll down: wait until it stops moving.
+          // An overshoot still fails — it settles in the wrong place.
+          await page.waitForFunction(
+            () =>
+              new Promise((done) => {
+                const y = window.scrollY;
+                setTimeout(() => done(window.scrollY === y), 250);
+              }),
+            null,
+            { timeout: 8000, polling: 50 },
+          );
           const top = await page.evaluate((h) => {
             const el = document.getElementById(decodeURIComponent(h.slice(1)));
             return el ? Math.round(el.getBoundingClientRect().top) : null;

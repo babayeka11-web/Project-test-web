@@ -16,7 +16,7 @@ function Dot() {
 export function BetaNotice() {
   return (
     <aside aria-label="ประกาศเว็บไซต์ทดลอง" className="scheme-deep bg-deep text-ink-2">
-      <Container className="flex min-h-9 items-center justify-center gap-2 py-1.5 text-center text-[0.75rem] leading-snug sm:text-meta">
+      <Container className="flex min-h-9 items-center justify-center gap-2 py-1.5 text-center text-meta leading-snug">
         <Icon name="info" size={15} strokeWidth={2} className="hidden text-sky sm:block" />
         <p>
           <span className="inline-block whitespace-nowrap">

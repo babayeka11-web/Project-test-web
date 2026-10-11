@@ -1,4 +1,18 @@
-/* Gentle airflow on the type illustrations: dashes drift away from the unit. Off for reduced motion. */
-@keyframes type-art-flow { to { stroke-dashoffset: -22; } }
-.type-art-air { animation: type-art-flow 1.6s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .type-art-air { animation: none; } }
+/* Gentle airflow on the type illustrations: dashes drift away from the unit. Only where the art asks for it
+   (<TypeArt animate> → [data-animate]), three passes and then still (no endless loops), off for reduced motion.
+   Layered so utilities can still override it. */
+@layer components {
+  @keyframes type-art-flow {
+    to {
+      stroke-dashoffset: -22;
+    }
+  }
+  .type-art[data-animate] .type-art-air {
+    animation: type-art-flow 1.6s linear 3;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .type-art[data-animate] .type-art-air {
+      animation: none;
+    }
+  }
+}

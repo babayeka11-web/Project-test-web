@@ -143,7 +143,7 @@ export function Fieldset({ legend, children, hint, error, required, hideLegend, 
 const control = cn(
   'w-full min-w-0 rounded-control border border-line-strong bg-surface text-body text-ink',
   'placeholder:text-ink-3/80 transition-[border-color,box-shadow] duration-150 ease-air',
-  'hover:border-ink-3 focus:border-focus focus:outline-none focus:ring-4 focus:ring-focus/20',
+  'hover:border-ink-3 focus:border-focus focus:outline-hidden focus:ring-4 focus:ring-focus/20',
   'aria-[invalid=true]:border-bad aria-[invalid=true]:focus:ring-bad/20',
   'disabled:cursor-not-allowed disabled:bg-surface-2 disabled:opacity-70',
 );
@@ -243,6 +243,9 @@ function Choice({ type, label, description, variant = 'row', aside, className, .
   const autoId = useId();
   const id = wired.id ?? `c${autoId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const descId = description ? `${id}-desc` : undefined;
+  // Name = label (+ aside, e.g. its price); the description is only the description. Labelling by the whole <label>
+  // read the description twice.
+  const labelledBy = [`${id}-label`, aside ? `${id}-aside` : null].filter(Boolean).join(' ');
   const card = variant === 'card';
   return (
     <label
@@ -251,6 +254,8 @@ function Choice({ type, label, description, variant = 'row', aside, className, .
         'group/choice relative flex min-h-11 cursor-pointer items-start gap-3',
         card &&
           'rounded-control border border-line bg-surface p-4 shadow-card transition-[border-color,background-color,box-shadow] duration-150 ease-air hover:border-sky/50 has-checked:border-brand has-checked:bg-sky-soft/40 has-checked:ring-1 has-checked:ring-brand has-focus-visible:ring-2 has-focus-visible:ring-focus has-disabled:cursor-not-allowed has-disabled:opacity-60',
+        // transparent outline = invisible normally; Windows High Contrast paints it where the box-shadow ring is dropped
+        card && 'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-transparent',
         !card && 'py-1.5 has-disabled:cursor-not-allowed has-disabled:opacity-60',
         className,
       )}
@@ -259,6 +264,7 @@ function Choice({ type, label, description, variant = 'row', aside, className, .
         {...props}
         id={id}
         type={type}
+        aria-labelledby={props['aria-labelledby'] ?? (props['aria-label'] ? undefined : labelledBy)}
         aria-describedby={[descId, wired['aria-describedby']].filter(Boolean).join(' ') || undefined}
         aria-invalid={wired['aria-invalid']}
         required={wired.required}
@@ -269,6 +275,9 @@ function Choice({ type, label, description, variant = 'row', aside, className, .
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
           card && 'focus-visible:outline-none',
           'aria-[invalid=true]:border-bad disabled:cursor-not-allowed',
+          // Windows High Contrast: draw checked/unchecked with system colours instead of losing the fill
+          'forced-colors:forced-color-adjust-none forced-colors:border-[CanvasText] forced-colors:bg-[Canvas]',
+          'forced-colors:checked:border-[SelectedItem] forced-colors:checked:bg-[SelectedItem]',
         )}
       />
       {/* Check mark / dot drawn over the native control. */}
@@ -276,6 +285,7 @@ function Choice({ type, label, description, variant = 'row', aside, className, .
         aria-hidden
         className={cn(
           'pointer-events-none absolute grid size-[1.375rem] place-items-center text-on-brand opacity-0 transition-opacity duration-150 peer-checked:opacity-100',
+          'forced-colors:forced-color-adjust-none forced-colors:text-[SelectedItemText]',
           card ? 'left-4 top-[1.125rem]' : 'left-0 top-2',
         )}
       >
@@ -286,14 +296,20 @@ function Choice({ type, label, description, variant = 'row', aside, className, .
         )}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium leading-snug text-ink">{label}</span>
+        <span id={`${id}-label`} className="font-medium leading-snug text-ink">
+          {label}
+        </span>
         {description && (
           <span id={descId} className="text-small text-ink-2">
             {description}
           </span>
         )}
       </span>
-      {aside && <span className="shrink-0 self-center">{aside}</span>}
+      {aside && (
+        <span id={`${id}-aside`} className="shrink-0 self-center">
+          {aside}
+        </span>
+      )}
     </label>
   );
 }

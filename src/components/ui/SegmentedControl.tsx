@@ -1,7 +1,8 @@
 'use client';
 // Pick one of 2–4 short options (ล้างปกติ / ล้างใหญ่, ติดผนัง / แขวน …). A WAI-ARIA radiogroup: Tab enters the group,
-// arrow keys move and select, Home/End jump. A sliding thumb shows the choice.
-import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+// arrow keys move and select, Home/End jump. A sliding thumb shows the choice. When the row does not fit (a phone, five
+// options) it becomes a two-column grid instead of a side-scroller that hides options off-screen.
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { cn } from './cn';
 import { Icon, type IconName } from './Icon';
 
@@ -44,6 +45,8 @@ export function SegmentedControl<V extends string = string>({
   const rootRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [thumb, setThumb] = useState<{ x: number; w: number } | null>(null);
+  // true = the options did not fit on one row, so they sit in a two-column grid (no thumb)
+  const [stacked, setStacked] = useState(false);
   const index = Math.max(
     0,
     options.findIndex((o) => o.value === value),
@@ -55,13 +58,48 @@ export function SegmentedControl<V extends string = string>({
   }, [index]);
 
   useLayoutEffect(() => {
+    if (stacked) return;
     measure();
     const root = rootRef.current;
     if (!root || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(measure);
     ro.observe(root);
+    itemRefs.current.forEach((el) => el && ro.observe(el));
     return () => ro.disconnect();
-  }, [measure]);
+  }, [measure, stacked]);
+
+  // Row layout: switch to the grid (before paint) as soon as the row scrolls or a label is cut off.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (stacked || !root || typeof ResizeObserver === 'undefined') return;
+    const check = () => {
+      const cut = Array.from(root.querySelectorAll<HTMLElement>('[data-seg-label]')).some(
+        (el) => el.scrollWidth > el.clientWidth + 1,
+      );
+      if (cut || root.scrollWidth > root.clientWidth + 1) setStacked(true);
+    };
+    check();
+    // the options too: a row clamped to its container keeps its size when the labels grow (web font swap)
+    const ro = new ResizeObserver(check);
+    ro.observe(root);
+    itemRefs.current.forEach((el) => el && ro.observe(el));
+    return () => ro.disconnect();
+  }, [stacked, options.length]);
+
+  // Grid layout: when the window gets wider (rotation, resize) try the row again; the check above undoes it if it
+  // still does not fit. Only on growth, so the two layouts can never flip back and forth.
+  useEffect(() => {
+    if (!stacked) return;
+    let width = window.innerWidth;
+    const onResize = () => {
+      if (window.innerWidth > width) setStacked(false);
+      width = window.innerWidth;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [stacked]);
+
+  const ready = thumb && !stacked;
 
   const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
 
@@ -90,17 +128,21 @@ export function SegmentedControl<V extends string = string>({
       role="radiogroup"
       aria-label={label}
       aria-labelledby={labelledBy}
-      data-ready={thumb ? '' : undefined}
+      data-ready={ready ? '' : undefined}
+      data-stacked={stacked ? '' : undefined}
       className={cn(
-        'group/seg no-scrollbar relative isolate max-w-full overflow-x-auto rounded-full border border-line bg-surface-2 p-1',
-        fullWidth ? 'flex w-full' : 'inline-flex',
+        'group/seg no-scrollbar relative isolate max-w-full overflow-x-auto border border-line bg-surface-2 p-1',
+        stacked
+          ? // an odd last option spans both columns
+            'grid grid-cols-2 gap-1 rounded-panel [&>button:last-of-type:nth-of-type(odd)]:col-span-2'
+          : cn('rounded-full', fullWidth ? 'flex w-full' : 'inline-flex'),
         className,
       )}
     >
-      {thumb && (
+      {ready && (
         <span
           aria-hidden
-          className="absolute inset-y-1 left-0 -z-10 rounded-full bg-surface shadow-card ring-1 ring-line transition-[transform,width] duration-250 ease-air"
+          className="absolute inset-y-1 left-0 -z-10 rounded-full bg-surface shadow-card ring-1 ring-line transition-[transform,width] duration-250 ease-air forced-colors:hidden"
           style={{ width: thumb.w, transform: `translateX(${thumb.x}px)` }}
         />
       )}
@@ -122,17 +164,30 @@ export function SegmentedControl<V extends string = string>({
             className={cn(
               'pressable relative inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-full font-semibold leading-tight',
               size === 'sm' ? 'text-small' : 'text-body',
-              fullWidth ? 'flex-1 px-2 sm:px-3' : size === 'sm' ? 'shrink-0 px-3.5' : 'shrink-0 px-5',
+              stacked ? 'px-3' : fullWidth ? 'flex-1 px-2 sm:px-3' : size === 'sm' ? 'shrink-0 px-3.5' : 'shrink-0 px-5',
               checked
                 ? 'text-brand group-not-data-ready/seg:bg-surface group-not-data-ready/seg:shadow-card'
                 : 'text-ink-2 hover:text-ink',
+              // Windows High Contrast: the thumb is a background, which is dropped — mark the choice with system colours
+              checked && 'forced-colors:forced-color-adjust-none forced-colors:bg-[SelectedItem] forced-colors:text-[SelectedItemText]',
               o.disabled && 'opacity-50',
             )}
           >
             {o.icon && <Icon name={o.icon} size={size === 'sm' ? 16 : 18} />}
             <span className={cn('flex min-w-0 flex-col', o.hint ? 'items-center py-1' : '')}>
-              <span className="truncate">{o.label}</span>
-              {o.hint && <span className="text-meta font-medium leading-tight text-ink-3">{o.hint}</span>}
+              <span data-seg-label className={stacked ? 'text-center' : 'truncate'}>
+                {o.label}
+              </span>
+              {o.hint && (
+                <span
+                  className={cn(
+                    'text-meta font-medium leading-tight text-ink-3',
+                    checked && 'forced-colors:text-[SelectedItemText]',
+                  )}
+                >
+                  {o.hint}
+                </span>
+              )}
             </span>
           </button>
         );

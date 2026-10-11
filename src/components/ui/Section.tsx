@@ -125,11 +125,12 @@ export function SectionHeading({ id, eyebrow, title, lead, actions, align = 'sta
   );
 }
 
-/** Small topic line above a heading, with the air-line mark. */
+/** Small topic line above a heading, with the air-line mark. Text in brand navy (sky text measured 4.44:1 on the air
+ *  wash); the mark keeps the sky colour. */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn('inline-flex items-center gap-2.5 text-small font-semibold text-sky', className)}>
-      <svg aria-hidden width="22" height="8" viewBox="0 0 22 8" fill="none" className="shrink-0">
+    <p className={cn('inline-flex items-center gap-2.5 text-small font-semibold text-brand', className)}>
+      <svg aria-hidden width="22" height="8" viewBox="0 0 22 8" fill="none" className="shrink-0 text-sky">
         <path d="M1 5.5C4.5 2 7.5 7 11 4s6.5-2.5 10-1" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
       </svg>
       {children}

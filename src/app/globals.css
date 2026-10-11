@@ -250,8 +250,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-padding-top: calc(var(--header-h) + 1rem);
-    /* --tray-h: the /products/ compare tray while it is open (set by Catalog) */
-    scroll-padding-bottom: calc(var(--mobilebar-h) + var(--tray-h, 0px) + 1rem);
+    /* Fixed things at the bottom that focused fields must clear: --tray-h the /products/ compare tray (set by Catalog),
+       --dock-h a page's action dock while it is open (with html[data-dock-open]), --toast-h the toasts (set by Toaster). */
+    scroll-padding-bottom: calc(var(--mobilebar-h) + var(--tray-h, 0px) + var(--dock-h, 0px) + var(--toast-h, 0px) + 1rem);
   }
   @media (prefers-reduced-motion: no-preference) {
     html {
@@ -340,13 +341,15 @@
     color: inherit;
   }
 
-  /* One visible focus ring everywhere (keyboard only). Inputs draw their own ring. */
+  /* One visible focus ring everywhere (keyboard only). Inputs draw their own ring (a box-shadow), so their outline is
+     transparent rather than none: invisible here, but Windows High Contrast drops box-shadows and paints the outline. */
   :focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 3px;
   }
   :where(input, textarea, select):focus-visible {
-    outline: none;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
   }
   [tabindex='-1']:focus {
     outline: none;

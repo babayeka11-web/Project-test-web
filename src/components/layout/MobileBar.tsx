@@ -1,6 +1,8 @@
 'use client';
 // Phone-only bottom bar: โทร · LINE · ใบเสนอราคา · เมนู. Respects the iPhone home indicator (safe-area-inset-bottom);
 // the body gets matching bottom padding in globals.css (--mobilebar-h) so nothing hides behind it.
+// "เมนู" is a link to the footer's page list (#site-map), so a tap before the script loads still goes somewhere; once
+// hydrated it opens the menu sheet instead.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -12,7 +14,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { setMenuOpen, useMenuOpen } from './menu-store';
 
 const item =
-  'pressable relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-control text-[0.75rem] font-semibold leading-tight no-underline';
+  'pressable relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-control text-meta font-semibold leading-tight no-underline';
 
 function ItemBody({ icon, label, badge }: { icon: IconName; label: string; badge?: ReactNode }) {
   return (
@@ -48,6 +50,7 @@ export function MobileBar() {
         </a>
         <Link
           href="/quote/"
+          prefetch={false}
           aria-current={onQuote ? 'page' : undefined}
           className={cn(item, onQuote ? 'bg-sky-soft text-brand' : 'text-ink-2 hover:text-ink')}
         >
@@ -58,15 +61,26 @@ export function MobileBar() {
           />
           <span className="sr-only">{count > 0 ? ` มี ${count} รายการ` : ' ยังไม่มีรายการ'}</span>
         </Link>
-        <button
-          type="button"
+        <a
+          href="#site-map"
+          role="button"
           aria-haspopup="dialog"
           aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(true)}
+          onClick={(e) => {
+            e.preventDefault();
+            setMenuOpen(true);
+          }}
+          onKeyDown={(e) => {
+            // a link only answers Enter; role="button" promises Space too
+            if (e.key === ' ') {
+              e.preventDefault();
+              setMenuOpen(true);
+            }
+          }}
           className={cn(item, 'text-ink-2 hover:text-ink')}
         >
           <ItemBody icon="menu" label="เมนู" />
-        </button>
+        </a>
       </div>
     </nav>
   );
