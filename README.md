@@ -23,8 +23,19 @@
 | `/quote/` | ใบเสนอราคาเบื้องต้น รวมทุกอย่างที่เลือกจากทุกหน้า + ส่งคำขอ |
 
 ทุกคำขอ (จอง ใบเสนอราคา ฟอร์มติดต่อ) สร้างสรุปภาษาไทยพร้อมเลขอ้างอิง `SBP-yymmdd-XXXX`
-ตอนนี้ยังไม่มีระบบหลังบ้าน เว็บจึงบอกตรง ๆ และส่งต่อให้ลูกค้ากด **ส่งทาง LINE (พิมพ์ข้อความให้แล้ว) · คัดลอก · โทร · อีเมล**
-ถ้าตั้ง `NEXT_PUBLIC_FORM_ENDPOINT` (URL ที่รับ POST JSON และตอบ 2xx) เว็บจะส่งคำขอถึงทีมอัตโนมัติและแจ้ง "ส่งถึงทีมแล้ว"
+ถ้ายังไม่ได้ต่อระบบรับคำขอ เว็บจะบอกตรง ๆ และส่งต่อให้ลูกค้ากด **ส่งทาง LINE (พิมพ์ข้อความให้แล้ว) · คัดลอก · โทร · อีเมล**
+เมื่อต่อระบบรับคำขอแล้ว (ดูหัวข้อถัดไป) เว็บจะส่งคำขอถึงทีมอัตโนมัติ และแจ้ง "ส่งถึงทีมแล้ว" เฉพาะเมื่อบันทึกสำเร็จจริง
+
+## รับคำขอเข้า Google Sheets + อีเมลแจ้งทีม (ฟรี)
+
+ระบบหลังบ้านแบบไม่มีค่าใช้จ่าย: Google Sheet ของบริษัท + Google Apps Script ([`backend/google-apps-script/Code.gs`](backend/google-apps-script/Code.gs))
+ทุกคำขอจากเว็บเข้าเป็น 1 แถวในแท็บ `คำขอ` และส่งอีเมลแจ้งทีม — ตั้งค่าเองได้ใน ~10 นาที ไม่ต้องเขียนโค้ด
+
+**คู่มือทีละขั้น (ภาษาไทย): [`backend/README.md`](backend/README.md)**
+
+สรุปสั้น ๆ: สร้างชีต → วาง `Code.gs` ใน Apps Script → ตั้ง `NOTIFY_EMAIL` → Deploy เป็น Web app (Anyone) →
+ใส่ URL `/exec` เป็น repository variable `FORM_ENDPOINT` ใน GitHub → Run workflow `Deploy to GitHub Pages`
+(ลบ variable นี้เมื่อไรก็ได้ เว็บจะกลับไปเป็นแบบส่งต่อเอง)
 
 ## รันบนเครื่อง
 
@@ -45,6 +56,7 @@ node scripts/e2e.mjs http://localhost:3000   # ทดสอบเส้นทา
    `https://babayeka11-web.github.io/Project-test-web/`
 
 ตัวแปรที่ตั้งได้ตอน build: `NEXT_PUBLIC_BASE_PATH` (path ย่อย เช่น `/Project-test-web`) · `NEXT_PUBLIC_SITE_URL` · `NEXT_PUBLIC_FORM_ENDPOINT`
+(บน GitHub Pages ค่า `NEXT_PUBLIC_FORM_ENDPOINT` มาจาก repository variable `FORM_ENDPOINT` — ไม่ตั้ง = ว่าง = แบบส่งต่อเอง)
 
 ## โครงสร้าง
 
