@@ -8,6 +8,7 @@ import { MaterialsTable, PipeBundleBlock } from '@/components/catalog/Materials'
 import { allModelParams, findModel, pageOptions, stdInstallEx } from '@/components/catalog/catalog-data';
 import { modelPath, productsPath, seriesPath } from '@/components/catalog/slug';
 import { sizeLabels, specRows } from '@/components/catalog/spec';
+import { RelatedGuides } from '@/components/knowledge/RelatedGuides';
 import { TypeArt } from '@/components/shared/TypeArt';
 import { Badge, Button, Card, CtaBand, Icon, PageHeader, Price, Section, Table } from '@/components/ui';
 import { baht, btuFmt, EX_TH, thousands } from '@/lib/domain/format';
@@ -25,7 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!hit) return {};
   const { series: m, sku: k } = hit;
   return {
-    title: `${m.brandName} ${k.sku} ${btuFmt(k.btu)}`,
+    // what people search for: type, brand, model code, size and the price (the layout adds " · SBP AirCare")
+    title: `แอร์${TYPE_BY_ID[m.type].th} ${m.brandName} ${k.sku} ${btuFmt(k.btu)} ราคา ${baht(k.price)} ${EX_TH}`,
     description: `แอร์${TYPE_BY_ID[m.type].th} ${m.brandName} ซีรีส์ ${m.series} ขนาด ${btuFmt(k.btu)} ราคาเครื่อง ${baht(k.price)} ${EX_TH} เลือกแพ็กเกจติดตั้ง ดูสเปก และใส่ใบเสนอราคา ยืนยันสต็อกก่อนสั่ง`,
     alternates: { canonical: './' },
   };
@@ -54,6 +56,7 @@ export default async function ModelPage({ params }: Props) {
     .slice(0, 6)
     .sort((a, b) => a.i - b.i);
 
+  // No availability (stock is confirmed before every order) and no image (the site only has type illustrations).
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -61,18 +64,28 @@ export default async function ModelPage({ params }: Props) {
     sku: k.sku,
     mpn: k.sku,
     category: `แอร์${type.th}`,
-    description: `แอร์${type.th} ${m.brandName} ซีรีส์ ${m.series} ${btuFmt(k.btu)} ${system}`,
+    description: `แอร์${type.th} ${m.brandName} ${m.series} ${btuFmt(k.btu)}`,
     brand: { '@type': 'Brand', name: m.brandName },
     url,
+    additionalProperty: [
+      { '@type': 'PropertyValue', name: 'ขนาดทำความเย็น', value: k.btu, unitText: 'BTU/h' },
+      ...(m.label ? [{ '@type': 'PropertyValue', name: 'น้ำยาแอร์', value: m.label }] : []),
+      { '@type': 'PropertyValue', name: 'ระบบ', value: system },
+    ],
     offers: {
       '@type': 'Offer',
       url,
       priceCurrency: 'THB',
       price: k.price,
       priceSpecification: { '@type': 'UnitPriceSpecification', priceCurrency: 'THB', price: k.price, valueAddedTaxIncluded: false },
-      seller: { '@type': 'Organization', name: 'บริษัท สหบูรพากรุ๊ป จำกัด' },
+      itemCondition: 'https://schema.org/NewCondition',
+      // the company node printed by the root layout (JsonLd, HVACBusiness)
+      seller: { '@id': `${SITE_URL}/#business` },
     },
   };
+  // The model code wraps only at its own spaces: a short code ('ASW-09/DIM-1S') stays whole, and only a code longer than
+  // a phone line may break inside. Fixed tokens also keep the line breaks the same when the Latin font swaps in (CLS).
+  const skuTokens = k.sku.split(' ').filter(Boolean);
 
   return (
     <>
@@ -80,18 +93,30 @@ export default async function ModelPage({ params }: Props) {
       <PageHeader
         breadcrumbs={[
           { label: 'หน้าแรก', href: '/' },
-          { label: 'สินค้า', href: productsPath },
+          { label: 'แอร์ทุกรุ่น', href: productsPath },
           { label: name, href: seriesPath(m.slug) },
           { label: k.sku },
         ]}
         eyebrow={`แอร์${type.th} · ${system}`}
-        title={<span className="[overflow-wrap:anywhere]">{`${m.brandName} ${k.sku} ${btuFmt(k.btu)}`}</span>}
+        title={
+          <span className="block [text-wrap:pretty]">
+            {m.brandName}
+            {skuTokens.map((t, i) => (
+              <span key={i}>
+                {' '}
+                <span className={t.length <= 16 ? 'whitespace-nowrap' : '[overflow-wrap:anywhere]'}>{t}</span>
+              </span>
+            ))}{' '}
+            <span className="whitespace-nowrap">{btuFmt(k.btu)}</span>
+          </span>
+        }
         lead={`ซีรีส์ ${m.series} · น้ำยา ${m.label || '—'}`}
         actions={
           m.skus.length > 1 ? (
             <nav aria-label="เปลี่ยนขนาดของซีรีส์นี้" className="flex w-full flex-col gap-2">
               <p className="text-small font-semibold text-ink">เปลี่ยนขนาด (BTU)</p>
-              <ul className="flex flex-wrap gap-2">
+              {/* equal cells: the row does not re-flow when the font swaps in */}
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.25rem,1fr))] gap-2">
                 {m.skus.map((s, i) => {
                   const current = i === index;
                   return (
@@ -103,8 +128,8 @@ export default async function ModelPage({ params }: Props) {
                         aria-label={`${btuFmt(s.btu)} รุ่น ${s.sku} ${baht(s.price)} ${EX_TH}${current ? ' (รุ่นนี้)' : ''}`}
                         className={
                           current
-                            ? 'pressable inline-flex min-h-11 min-w-14 items-center justify-center rounded-full border border-brand bg-brand px-4 text-small font-semibold tabular-nums text-on-brand no-underline'
-                            : 'pressable inline-flex min-h-11 min-w-14 items-center justify-center rounded-full border border-line-strong/50 bg-surface px-4 text-small font-semibold tabular-nums text-ink-2 no-underline hover:border-brand hover:text-brand'
+                            ? 'pressable inline-flex min-h-11 w-full items-center justify-center rounded-full border border-brand bg-brand px-3 text-small font-semibold tabular-nums text-on-brand no-underline forced-colors:forced-color-adjust-none forced-colors:bg-[SelectedItem] forced-colors:text-[SelectedItemText]'
+                            : 'pressable inline-flex min-h-11 w-full items-center justify-center rounded-full border border-line-strong/50 bg-surface px-3 text-small font-semibold tabular-nums text-ink-2 no-underline hover:border-brand hover:text-brand'
                         }
                       >
                         {chipLabels[i]}
@@ -153,7 +178,7 @@ export default async function ModelPage({ params }: Props) {
         </Section>
       )}
 
-      <Section id="specs" eyebrow="สเปก" title="สเปกเครื่อง" lead="ข้อมูลจากรายการสินค้าของบริษัท ช่องที่ไม่มีข้อมูลแสดงเป็น — เราไม่เดาค่าสเปก">
+      <Section id="specs" title="สเปกเครื่อง" lead="ข้อมูลจากรายการสินค้าของบริษัท ช่องที่ไม่มีข้อมูลแสดงเป็น — เราไม่เดาค่าสเปก">
         <Table
           caption={`สเปก ${m.brandName} ${k.sku}`}
           minWidth="0"
@@ -165,10 +190,11 @@ export default async function ModelPage({ params }: Props) {
         />
       </Section>
 
+      <RelatedGuides page="model" tone="soft" />
+
       {others.length > 0 && (
         <Section
           id="sizes"
-          tone="soft"
           eyebrow="ซีรีส์เดียวกัน"
           title="ขนาดอื่นของซีรีส์นี้"
           actions={
@@ -210,7 +236,7 @@ export default async function ModelPage({ params }: Props) {
         lead="บอกขนาดห้องและตำแหน่งติดตั้ง ทีมช่วยเลือกขนาดและแจ้งราคาติดตั้งตามหน้างานจริงในใบเสนอราคา"
         actions={
           <>
-            <Button href="/contact/?topic=buy" variant="primary" icon="chat">
+            <Button data-page-cta href="/contact/?topic=buy" variant="primary" icon="chat">
               คุยกับทีมขาย
             </Button>
             <Button href="/quote/" variant="secondary" icon="quote">
